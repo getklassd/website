@@ -1,0 +1,23 @@
+# ── .NET (src/Backend) ──────────────────────────────
+[Bb]in/
+[Oo]bj/
+*.user
+# Local CMS database + media uploads
+*.db
+*.db-wal
+*.db-shm
+src/Backend/media/
+
+# ── Node / Vite (src/Frontend) ──────────────────────
+node_modules/
+dist/
+*.local
+.env
+.vite/
+*.tsbuildinfo
+
+# ── IDE / OS ────────────────────────────────────────
+.vs/
+.idea/
+.DS_Store
+Thumbs.db

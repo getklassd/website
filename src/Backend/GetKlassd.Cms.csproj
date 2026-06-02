@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>GetKlassd.Cms</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Pre-1.0 we dogfood Klassd against live source via the `klassd` git submodule.
+    Flip these to <PackageReference Include="Klassd.*" /> once published to NuGet.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\klassd\src\Klassd.Backoffice\Klassd.Backoffice.csproj" />
+    <ProjectReference Include="..\..\klassd\src\Klassd.Data.Sqlite\Klassd.Data.Sqlite.csproj" />
+    <ProjectReference Include="..\..\klassd\src\Klassd.Cache.InMemory\Klassd.Cache.InMemory.csproj" />
+    <ProjectReference Include="..\..\klassd\src\Klassd.Media.FileSystem\Klassd.Media.FileSystem.csproj" />
+  </ItemGroup>
+
+</Project>

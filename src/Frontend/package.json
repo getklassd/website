@@ -1,0 +1,25 @@
+{
+  "name": "getklassd-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "getklassd.com — Vue 3 SSR frontend (Bun) consuming the Klassd headless delivery API",
+  "scripts": {
+    "dev": "bun run server.ts",
+    "build": "vue-tsc --noEmit && bun run build:client && bun run build:server",
+    "build:client": "vite build --outDir dist/client",
+    "build:server": "vite build --ssr src/entry-server.ts --outDir dist/server",
+    "start": "NODE_ENV=production bun run server.ts"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "sirv": "^3.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vue-tsc": "^2.2.0"
+  }
+}
