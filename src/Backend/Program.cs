@@ -20,7 +20,8 @@ builder.Services
         media.AddSection("images", s => s
             .UseFileSystem(Path.Combine(builder.Environment.ContentRootPath, "media", "images"))
             .AllowContentTypes("image/*")
-            .ResizeImages(2000));
+            .ResizeImages(2000)
+            .Breakpoints("default", "mobile", "tablet", "desktop"));
     });
 
 var app = builder.Build();
