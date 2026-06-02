@@ -5,6 +5,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>GetKlassd.Cms</RootNamespace>
+    <!--
+      All Blazor components live in the Klassd.Backoffice RCL, so this host has no .razor
+      files of its own. Without that, the SDK leaves RequiresAspNetWebAssets=false and never
+      pulls in the framework's _framework/blazor.web.js static asset → 404 at runtime.
+      Force it on so the Blazor admin script is served. (See Microsoft.NET.Sdk.Web.ProjectSystem.targets.)
+    -->
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
   </PropertyGroup>
 
   <!--
