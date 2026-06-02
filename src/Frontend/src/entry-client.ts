@@ -1,7 +1,7 @@
-import { createApp } from './app'
-import type { Page } from './api'
+import { createApp, type AppState } from './app'
 
 // Client entry: read the state the server embedded and hydrate the server-rendered markup.
-const state = (window as unknown as { __INITIAL_STATE__?: Page | null }).__INITIAL_STATE__ ?? null
+const fallback: AppState = { page: null, header: null, footer: null, nav: [] }
+const state = (window as unknown as { __INITIAL_STATE__?: AppState }).__INITIAL_STATE__ ?? fallback
 const { app } = createApp(state)
 app.mount('#app')

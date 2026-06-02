@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { inject } from 'vue'
 import type { Block, Page } from './api'
+import Header from './components/Header.vue'
+import Footer from './components/Footer.vue'
 import Hero from './components/Hero.vue'
 import FeatureCard from './components/FeatureCard.vue'
 
@@ -13,32 +15,28 @@ function features(p: Page): Block[] {
 </script>
 
 <template>
-  <main>
-    <template v-if="page">
-      <Hero
-        :title="page.data.heroTitle"
-        :subtitle="page.data.heroSubtitle"
-        :cta-text="page.data.ctaText"
-        :cta-url="page.data.ctaUrl"
-      />
-      <section class="features">
-        <FeatureCard
-          v-for="(block, i) in features(page)"
-          :key="i"
-          :title="block.data.title"
-          :body="block.data.body"
+  <div class="site">
+    <Header />
+    <main>
+      <template v-if="page">
+        <Hero
+          :title="page.data.heroTitle"
+          :subtitle="page.data.heroSubtitle"
+          :cta-text="page.data.ctaText"
+          :cta-url="page.data.ctaUrl"
         />
-      </section>
-    </template>
+        <section class="features">
+          <FeatureCard
+            v-for="(block, i) in features(page)"
+            :key="i"
+            :title="block.data.title"
+            :body="block.data.body"
+          />
+        </section>
+      </template>
 
-    <p v-else class="status">No HomePage content yet — create one in the CMS admin at /admin.</p>
-
-    <footer>
-      Content delivered headlessly by
-      <a href="https://github.com/getklassd/Klassd">Klassd</a>.
-      <br />
-      Klassd and this site were built with AI assistance
-      (<a href="https://claude.com/claude-code">Claude Code</a>).
-    </footer>
-  </main>
+      <p v-else class="status">No HomePage content yet — create one in the CMS admin at /admin.</p>
+    </main>
+    <Footer />
+  </div>
 </template>

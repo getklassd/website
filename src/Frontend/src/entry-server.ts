@@ -1,18 +1,20 @@
 import { renderToString } from 'vue/server-renderer'
-import { createApp } from './app'
-import { fetchHome, type Page } from './api'
+import { createApp, type AppState } from './app'
+import { fetchHome, getSiteHeader, getSiteFooter, getNavTree } from './api'
 
-// Server entry: fetch content from the Klassd delivery API, render the app to an HTML string,
-// and return both the markup and the data (serialized into the page for hydration).
-export async function render(_url: string): Promise<{ html: string; state: Page | null }> {
-  let page: Page | null = null
-  try {
-    page = await fetchHome('en')
-  } catch {
-    // CMS unreachable — render the empty state rather than failing the whole request.
-  }
+// Server entry: fetch page content + CMS-managed chrome (header/footer/nav) in parallel, render the
+// app to an HTML string, and return both the markup and the state (serialized for hydration). Each
+// fetcher swallows its own errors and returns null/[] so the CMS being unreachable can't fail SSR.
+export async function render(_url: string): Promise<{ html: string; state: AppState }> {
+  const [page, header, footer, nav] = await Promise.all([
+    fetchHome('en').catch(() => null),
+    getSiteHeader('en'),
+    getSiteFooter('en'),
+    getNavTree('en'),
+  ])
 
-  const { app } = createApp(page)
+  const state: AppState = { page, header, footer, nav }
+  const { app } = createApp(state)
   const html = await renderToString(app)
-  return { html, state: page }
+  return { html, state }
 }

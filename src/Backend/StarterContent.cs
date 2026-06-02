@@ -1,4 +1,5 @@
 using GetKlassd.Cms.Content;
+using Klassd.Backoffice.Modules.Globals.Services;
 using Klassd.Backoffice.Modules.Pages.Models;
 using Klassd.Backoffice.Modules.Pages.Services;
 using Klassd.Core.Localization;
@@ -40,6 +41,10 @@ public static class StarterContent
                 ["heroSubtitle"] = "Klassd is a headless CMS for .NET. Define your content model as C# classes and deliver it to any frontend over a clean JSON API.",
                 ["ctaText"] = "Get started on GitHub",
                 ["ctaUrl"] = "https://github.com/getklassd/Klassd",
+                // Navigation metadata (PageBase) — drives the site menu built from the page tree.
+                ["showInNavigation"] = "true",
+                ["navLabel"] = "Home",
+                ["navOrder"] = "0",
             },
             BlockAreas: new Dictionary<string, List<BlockData>>
             {
@@ -50,5 +55,56 @@ public static class StarterContent
                     new BlockData(nameof(FeatureBlock), new() { ["title"] = "Pluggable", ["body"] = "Swap storage (Mongo/Postgres/SQLite) and media (FileSystem/S3/GCS) backends freely." }),
                 ],
             }));
+
+        // A second page so the page-tree-driven nav shows more than one item on first run.
+        await pages.CreateAsync(new CreatePageRequest(
+            PageTypeName: nameof(HomePage), LocaleCode: locale, ContentId: null, ParentId: null,
+            Name: "Docs", Slug: "docs",
+            Data: new Dictionary<string, string>
+            {
+                ["heroTitle"] = "Documentation",
+                ["heroSubtitle"] = "Guides and API reference for Klassd live on GitHub.",
+                ["ctaText"] = "Read the docs",
+                ["ctaUrl"] = "https://github.com/getklassd/Klassd#readme",
+                ["showInNavigation"] = "true",
+                ["navLabel"] = "Docs",
+                ["navOrder"] = "1",
+            },
+            BlockAreas: new()));
+
+        // Seed the site chrome globals (header + footer). First-run only (gated with the HomePage check above).
+        var globals = sp.GetRequiredService<GlobalService>();
+
+        await globals.SaveAsync(nameof(SiteHeader), locale,
+            new Dictionary<string, string>
+            {
+                ["logoText"] = "Klassd",
+                ["ctaText"] = "GitHub",
+                ["ctaUrl"] = "https://github.com/getklassd/Klassd",
+            },
+            blockAreas: null);
+
+        await globals.SaveAsync(nameof(SiteFooter), locale,
+            new Dictionary<string, string>
+            {
+                ["tagline"] = "A code-first, headless CMS for .NET.",
+                ["copyright"] = $"© {DateTime.UtcNow.Year} Klassd",
+            },
+            new Dictionary<string, List<BlockData>>
+            {
+                ["columns"] =
+                [
+                    new BlockData(nameof(LinkListBlock), new()
+                    {
+                        ["heading"] = "Project",
+                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd/Klassd"},{"label":"Docs","url":"/docs"}]""",
+                    }),
+                    new BlockData(nameof(LinkListBlock), new()
+                    {
+                        ["heading"] = "Built with",
+                        ["links"] = """[{"label":"Claude Code","url":"https://claude.com/claude-code"}]""",
+                    }),
+                ],
+            });
     }
 }

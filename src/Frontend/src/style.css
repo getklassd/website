@@ -90,11 +90,67 @@ main { min-height: 100vh; }
 .feature h3 { margin: 0 0 10px; font-size: 18px; }
 .feature p { margin: 0; color: var(--muted); line-height: 1.6; }
 
-footer {
-  text-align: center;
-  color: var(--muted);
-  padding: 32px 24px 56px;
-  border-top: 1px solid var(--border);
-  font-size: 14px;
+/* Site header (CMS-managed: logo + CTA from SiteHeader global, nav from the page tree) */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(11, 11, 23, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
 }
-footer a { color: var(--accent); }
+.site-header-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.brand { display: inline-flex; align-items: center; text-decoration: none; }
+.brand-logo { height: 28px; display: block; }
+.brand-text { font-weight: 700; font-size: 18px; color: var(--text); letter-spacing: -0.01em; }
+.site-nav { display: flex; gap: 22px; }
+.site-nav-link { color: var(--muted); text-decoration: none; font-size: 14px; transition: color 0.12s ease; }
+.site-nav-link:hover { color: var(--text); }
+.header-cta {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 9px 16px;
+  border-radius: 8px;
+}
+
+/* Site footer (CMS-managed: tagline/copyright/columns from the SiteFooter global) */
+.site-footer { border-top: 1px solid var(--border); background: var(--panel); }
+.site-footer-inner { max-width: 1040px; margin: 0 auto; padding: 48px 24px 56px; }
+.footer-tagline { color: var(--text); font-size: 18px; margin: 0 0 32px; max-width: 520px; }
+.footer-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 32px;
+  margin-bottom: 40px;
+}
+.footer-column h4 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+.footer-column ul { list-style: none; margin: 0; padding: 0; }
+.footer-column li { margin-bottom: 8px; }
+.footer-column a { color: var(--text); text-decoration: none; font-size: 14px; }
+.footer-column a:hover { color: var(--accent); }
+.footer-meta {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+}
+.footer-meta a { color: var(--accent); }
+.footer-credit { display: block; margin-top: 6px; color: var(--muted); }
