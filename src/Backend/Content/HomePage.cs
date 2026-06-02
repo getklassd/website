@@ -9,8 +9,8 @@ namespace GetKlassd.Cms.Content;
 [CmsPage(DefaultSlug = "")]
 public class HomePage : PageBase
 {
-    [Localized] public string HeroTitle { get; set; } = "";
-    [Localized] public string HeroSubtitle { get; set; } = "";
+    [Localized, Indexable] public string HeroTitle { get; set; } = "";
+    [Localized, Indexable] public string HeroSubtitle { get; set; } = "";
 
     public string CtaText { get; set; } = "";
     public string CtaUrl { get; set; } = "";
