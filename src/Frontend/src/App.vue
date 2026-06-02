@@ -36,6 +36,9 @@ function features(p: Page): Block[] {
     <footer>
       Content delivered headlessly by
       <a href="https://github.com/getklassd/Klassd">Klassd</a>.
+      <br />
+      Klassd and this site were built with AI assistance
+      (<a href="https://claude.com/claude-code">Claude Code</a>).
     </footer>
   </main>
 </template>
