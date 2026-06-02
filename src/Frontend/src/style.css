@@ -3,7 +3,8 @@
   --panel: #12122a;
   --text: #e7e7f0;
   --muted: #9aa0b4;
-  --accent: #7c83fd;
+  --accent: #fb5b4c;          /* Klassd coral — matches the admin brand accent */
+  --accent-rgb: 251, 91, 76;  /* same coral, for translucent glows */
   --border: #23233f;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
@@ -31,7 +32,7 @@ main { min-height: 100vh; }
 .hero {
   padding: 120px 24px 96px;
   background:
-    radial-gradient(900px 400px at 50% -10%, rgba(124, 131, 253, 0.25), transparent 70%),
+    radial-gradient(900px 400px at 50% -10%, rgba(var(--accent-rgb), 0.22), transparent 70%),
     var(--bg);
   text-align: center;
 }
@@ -70,7 +71,7 @@ main { min-height: 100vh; }
   border-radius: 10px;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-.cta:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(124, 131, 253, 0.35); }
+.cta:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(var(--accent-rgb), 0.32); }
 
 /* Features */
 .features {
