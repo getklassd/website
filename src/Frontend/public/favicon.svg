@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Klassd">
+  <!-- 'd' from the Klassd wordmark: Segoe UI 800, coral on graphite -->
+  <rect width="512" height="512" rx="112" fill="#16181d"/>
+  <text x="256" y="372" text-anchor="middle"
+        font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+        font-size="400" font-weight="800" letter-spacing="-6" fill="#fb5b4c">d</text>
+</svg>
