@@ -9,6 +9,7 @@
     "build": "vue-tsc --noEmit && bun run build:client && bun run build:server",
     "build:client": "vite build --outDir dist/client",
     "build:server": "vite build --ssr src/entry-server.ts --outDir dist/server",
+    "build:static": "bun run build && bun prerender.ts",
     "start": "NODE_ENV=production bun run server.ts"
   },
   "dependencies": {

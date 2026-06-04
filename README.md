@@ -97,6 +97,26 @@ docker compose up --build
 > reachable from the browser and its origin added to the CORS allow-list. The seeded content uses
 > no media (the logo falls back to the "Klassd" wordmark).
 
+## Static build (GitHub Pages)
+
+The site can also be shipped as a **fully static** bundle — no Bun server, no CMS at
+runtime. `src/Frontend/prerender.ts` runs the same `render()` the SSR server uses, fetches
+the content from the CMS **once at build time**, and bakes the HTML + hydration state into
+`dist/client`. The result is self-contained (the client hydrates from inlined state and never
+calls the CMS).
+
+```bash
+# with the CMS running on :5080
+cd src/Frontend
+CMS_BASE=http://localhost:5080 bun run build:static   # build + prerender → dist/client
+```
+
+`.github/workflows/pages.yml` does this in CI: it builds and boots the CMS, prerenders against
+it, and deploys `dist/client` to GitHub Pages. It serves at the custom domain **getklassd.com**
+(base `/`, with `public/CNAME`); set `BASE_PATH=/website/` to serve from a project-page URL
+instead. One-time setup: in the repo's **Settings → Pages**, set the source to **GitHub Actions**,
+and point the domain's DNS at GitHub Pages.
+
 ## Notes
 
 - Pre-1.0, the Backend references Klassd via the `klassd/` **submodule + project references** so the
