@@ -17,4 +17,16 @@ public class HomePage : PageBase
 
     /// <summary>The "why Klassd" feature cards, authored as blocks.</summary>
     public BlockArea Features { get; set; } = new();
+
+    // ── "See it in code" showcase ─────────────────────────────────────────
+    // A code sample + install snippet so the landing page shows substance below
+    // the fold. Rendered by the frontend's CodeShowcase component when present.
+    [Localized] public string CodeHeading { get; set; } = "";
+    [Localized] public string CodeSubtitle { get; set; } = "";
+
+    /// <summary>A C# snippet shown verbatim (rendered in a &lt;pre&gt;).</summary>
+    public string CodeSample { get; set; } = "";
+
+    /// <summary>The shell commands to install Klassd (rendered in a &lt;pre&gt;).</summary>
+    public string InstallCommand { get; set; } = "";
 }

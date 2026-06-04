@@ -91,7 +91,57 @@ main { min-height: 100vh; }
 .feature h3 { margin: 0 0 10px; font-size: 18px; }
 .feature p { margin: 0; color: var(--muted); line-height: 1.6; }
 
-/* Site header (CMS-managed: logo + CTA from SiteHeader global, nav from the page tree) */
+/* Code showcase ("see it in code") */
+.showcase {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 8px 24px 96px;
+}
+.showcase-intro { max-width: 680px; margin: 0 auto 36px; text-align: center; }
+.showcase-intro h2 {
+  font-size: clamp(24px, 4vw, 34px);
+  letter-spacing: -0.02em;
+  margin: 0 0 14px;
+}
+.showcase-intro p { color: var(--muted); line-height: 1.6; margin: 0; }
+.showcase-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 760px) {
+  .showcase-grid { grid-template-columns: 1fr; }
+}
+.code-panel {
+  margin: 0;
+  background: #0d0d1f;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.code-panel figcaption {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}
+.code-panel pre {
+  margin: 0;
+  padding: 18px;
+  overflow-x: auto;
+}
+.code-panel code {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #d6d6e7;
+  white-space: pre;
+}
+.code-panel--install code { color: var(--accent); }
+
+/* Site header (CMS-managed: logo + nav links + CTA from the SiteHeader global) */
 .site-header {
   position: sticky;
   top: 0;

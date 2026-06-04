@@ -1,14 +1,13 @@
 import { createSSRApp } from 'vue'
 import App from './App.vue'
-import type { Page, SiteHeaderData, SiteFooterData, NavNode } from './api'
+import type { Page, SiteHeaderData, SiteFooterData } from './api'
 import './style.css'
 
-// The full SSR state: page content plus the CMS-managed site chrome (header/footer/nav).
+// The full SSR state: page content plus the CMS-managed site chrome (header/footer).
 export interface AppState {
   page: Page | null
   header: SiteHeaderData | null
   footer: SiteFooterData | null
-  nav: NavNode[]
 }
 
 // Shared app factory used by BOTH entry-server (renderToString) and entry-client (hydrate).
@@ -19,6 +18,5 @@ export function createApp(state: AppState) {
   app.provide<Page | null>('initialPage', state.page)
   app.provide<SiteHeaderData | null>('siteHeader', state.header)
   app.provide<SiteFooterData | null>('siteFooter', state.footer)
-  app.provide<NavNode[]>('navTree', state.nav)
   return { app }
 }

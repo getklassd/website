@@ -41,10 +41,25 @@ public static class StarterContent
                 ["heroSubtitle"] = "Klassd is a headless CMS for .NET. Define your content model as C# classes and deliver it to any frontend over a clean JSON API.",
                 ["ctaText"] = "Get started on GitHub",
                 ["ctaUrl"] = "https://github.com/getklassd/Klassd",
-                // Navigation metadata (PageBase) — drives the site menu built from the page tree.
-                ["showInNavigation"] = "true",
-                ["navLabel"] = "Home",
-                ["navOrder"] = "0",
+                // "See it in code" showcase below the feature cards.
+                ["codeHeading"] = "Your content model is just C#",
+                ["codeSubtitle"] = "Define pages and blocks as classes. The engine reflects over them to drive the admin and a headless JSON API — no content-type designer, no migrations to hand-write.",
+                ["codeSample"] =
+                    """
+                    [CmsPage(DefaultSlug = "", Icon = "house")]
+                    public class HomePage : PageBase
+                    {
+                        [Localized]                     // separate value per locale
+                        public string Title { get; set; } = "";
+                        public BlockArea HeroBlocks { get; set; } = new();
+                    }
+                    """,
+                ["installCommand"] =
+                    """
+                    # Klassd is in beta — install the prerelease packages
+                    dotnet add package Klassd.Backoffice --prerelease
+                    dotnet add package Klassd.Data.Sqlite --prerelease
+                    """,
             },
             BlockAreas: new Dictionary<string, List<BlockData>>
             {
@@ -56,22 +71,6 @@ public static class StarterContent
                 ],
             }));
 
-        // A second page so the page-tree-driven nav shows more than one item on first run.
-        await pages.CreateAsync(new CreatePageRequest(
-            PageTypeName: nameof(HomePage), LocaleCode: locale, ContentId: null, ParentId: null,
-            Name: "Docs", Slug: "docs",
-            Data: new Dictionary<string, string>
-            {
-                ["heroTitle"] = "Documentation",
-                ["heroSubtitle"] = "Guides and API reference for Klassd live on GitHub.",
-                ["ctaText"] = "Read the docs",
-                ["ctaUrl"] = "https://github.com/getklassd/Klassd#readme",
-                ["showInNavigation"] = "true",
-                ["navLabel"] = "Docs",
-                ["navOrder"] = "1",
-            },
-            BlockAreas: new()));
-
         // Seed the site chrome globals (header + footer). First-run only (gated with the HomePage check above).
         var globals = sp.GetRequiredService<GlobalService>();
 
@@ -79,6 +78,8 @@ public static class StarterContent
             new Dictionary<string, string>
             {
                 ["logoText"] = "Klassd",
+                // Primary nav. Docs lives on GitHub while Klassd is in beta (no on-site docs yet).
+                ["navLinks"] = """[{"label":"Docs","url":"https://github.com/getklassd/Klassd#readme"}]""",
                 ["ctaText"] = "GitHub",
                 ["ctaUrl"] = "https://github.com/getklassd/Klassd",
             },
@@ -97,7 +98,7 @@ public static class StarterContent
                     new BlockData(nameof(LinkListBlock), new()
                     {
                         ["heading"] = "Project",
-                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd/Klassd"},{"label":"Docs","url":"/docs"}]""",
+                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd/Klassd"},{"label":"Docs","url":"https://github.com/getklassd/Klassd#readme"},{"label":"NuGet","url":"https://www.nuget.org/packages/Klassd.Backoffice"}]""",
                     }),
                     new BlockData(nameof(LinkListBlock), new()
                     {

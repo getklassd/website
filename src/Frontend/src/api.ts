@@ -39,27 +39,21 @@ export interface Global {
   blockAreas: Record<string, Block[]>
 }
 
+export interface FooterLink { label: string; url: string }
+
 export interface SiteHeaderData {
   logoText: string
   logoMediaId: string
+  navLinks: FooterLink[]
   ctaText: string
   ctaUrl: string
 }
 
-export interface FooterLink { label: string; url: string }
 export interface FooterColumn { heading: string; links: FooterLink[] }
 export interface SiteFooterData {
   tagline: string
   copyright: string
   columns: FooterColumn[]
-}
-
-/** A node in the navigation tree the frontend assembles from the flat page list. */
-export interface NavNode {
-  id: string
-  label: string
-  href: string
-  children: NavNode[]
 }
 
 export async function fetchPages(locale = 'en'): Promise<Page[]> {
@@ -96,6 +90,7 @@ export async function getSiteHeader(locale = 'en'): Promise<SiteHeaderData | nul
   return {
     logoText: g.data.logoText ?? '',
     logoMediaId: g.data.logoMediaId ?? '',
+    navLinks: parseLinks(g.data.navLinks),
     ctaText: g.data.ctaText ?? '',
     ctaUrl: g.data.ctaUrl ?? '',
   }
@@ -121,35 +116,4 @@ function parseLinks(raw: string | undefined): FooterLink[] {
   } catch {
     return []
   }
-}
-
-/**
- * Build the navigation tree from the flat page list. Nav metadata rides in each page's `data`
- * (showInNavigation / navLabel / navOrder). Filters to navigable pages, orders siblings by navOrder,
- * labels from navLabel||name, hrefs from slug ('' → '/'). Tolerant of the fields being absent.
- */
-export async function getNavTree(locale = 'en'): Promise<NavNode[]> {
-  let pages: Page[]
-  try {
-    pages = await fetchPages(locale)
-  } catch {
-    return []
-  }
-  const visible = pages.filter((p) => p.data.showInNavigation === 'true')
-  const visibleIds = new Set(visible.map((p) => p.id))
-  const order = (p: Page) => parseInt(p.data.navOrder ?? '0', 10) || 0
-  const toNode = (p: Page): NavNode => ({
-    id: p.id,
-    label: (p.data.navLabel || p.name).trim(),
-    href: p.slug === '' ? '/' : `/${p.slug}`,
-    children: visible
-      .filter((c) => c.parentId === p.id)
-      .sort((a, b) => order(a) - order(b))
-      .map(toNode),
-  })
-  // Roots: navigable pages with no parent, or whose parent isn't itself navigable.
-  return visible
-    .filter((p) => p.parentId === null || !visibleIds.has(p.parentId))
-    .sort((a, b) => order(a) - order(b))
-    .map(toNode)
 }
