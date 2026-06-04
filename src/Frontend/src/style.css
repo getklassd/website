@@ -75,7 +75,7 @@ main { min-height: 100vh; }
 
 /* Features */
 .features {
-  max-width: 1040px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px 24px 96px;
   display: grid;
@@ -93,7 +93,7 @@ main { min-height: 100vh; }
 
 /* Code showcase ("see it in code") */
 .showcase {
-  max-width: 1040px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 8px 24px 96px;
 }
@@ -152,7 +152,7 @@ main { min-height: 100vh; }
   border-bottom: 1px solid var(--border);
 }
 .site-header-inner {
-  max-width: 1040px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 14px 24px;
   display: flex;
