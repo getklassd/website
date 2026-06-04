@@ -100,11 +100,6 @@ public static class StarterContent
                         ["heading"] = "Project",
                         ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd/Klassd"},{"label":"Docs","url":"https://github.com/getklassd/Klassd#readme"},{"label":"NuGet","url":"https://www.nuget.org/packages/Klassd.Backoffice"}]""",
                     }),
-                    new BlockData(nameof(LinkListBlock), new()
-                    {
-                        ["heading"] = "Built with",
-                        ["links"] = """[{"label":"Claude Code","url":"https://claude.com/claude-code"}]""",
-                    }),
                 ],
             });
     }
