@@ -16,6 +16,9 @@ dist/
 .vite/
 *.tsbuildinfo
 
+# Generated Playwright screenshots (scripts/screenshots.mjs)
+screenshots/
+
 # ── IDE / OS ────────────────────────────────────────
 .vs/
 .idea/
