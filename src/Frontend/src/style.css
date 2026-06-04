@@ -142,6 +142,23 @@ main { min-height: 100vh; }
 /* Install commands wrap (rather than clip/scroll) — the lines run long. */
 .code-panel--install code { color: var(--accent); white-space: pre-wrap; overflow-wrap: anywhere; }
 
+/* Phones: smaller code so the C# sample fits without clipping, and tighter
+   section spacing so the page doesn't feel stretched on a small screen.
+   (Placed after the base .code-panel rules so it wins the cascade.) */
+@media (max-width: 600px) {
+  .hero { padding: 72px 20px 52px; }
+  .features { padding: 16px 20px 52px; gap: 16px; }
+  .showcase { padding: 8px 16px 56px; }
+  .showcase-intro { margin-bottom: 24px; }
+  .code-panel pre { padding: 14px; }
+  .code-panel code { font-size: 11px; line-height: 1.55; }
+  .site-footer-inner { padding: 36px 20px 40px; }
+}
+
+@media (max-width: 380px) {
+  .code-panel code { font-size: 10px; }
+}
+
 /* Site header (CMS-managed: logo + nav links + CTA from the SiteHeader global) */
 .site-header {
   position: sticky;

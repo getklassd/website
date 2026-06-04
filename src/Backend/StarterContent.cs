@@ -49,9 +49,10 @@ public static class StarterContent
                     [CmsPage(DefaultSlug = "", Icon = "house")]
                     public class HomePage : PageBase
                     {
-                        [Localized]                     // separate value per locale
+                        [Localized]   // value per locale
                         public string Title { get; set; } = "";
-                        public BlockArea HeroBlocks { get; set; } = new();
+
+                        public BlockArea Hero { get; set; } = new();
                     }
                     """,
                 ["installCommand"] =
