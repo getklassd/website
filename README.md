@@ -75,10 +75,33 @@ Configure where the SSR server reaches the CMS with `CMS_BASE` (runtime) or `VIT
 the site origin in the CMS's CORS allow-list (`Klassd:Cors:AllowedOrigins` in
 `src/Backend/appsettings.json`).
 
+## Deploy (Docker)
+
+Both services are containerized; `docker compose` runs the stack with the site talking to the CMS
+over the internal network:
+
+```bash
+docker compose up --build
+# site  → http://localhost:5173
+# admin → http://localhost:5080/admin   (seeded admin/admin — change it)
+```
+
+- `src/Backend/Dockerfile` — CMS image. **Build context is the repo root** (it needs the `klassd/`
+  submodule): `docker build -f src/Backend/Dockerfile .`. The SQLite DB persists in the `cms-data`
+  volume (`/data`).
+- `src/Frontend/Dockerfile` — Vue SSR image (`docker build src/Frontend`).
+- `.github/workflows/ci.yml` builds both on every push/PR (checks out the submodule over HTTPS).
+
+> The site fetches the CMS **server-side** (`CMS_BASE`), so the CMS port doesn't need to be public.
+> Media URLs (`/api/media/...`) are the exception — if you use uploaded media, the CMS must be
+> reachable from the browser and its origin added to the CORS allow-list. The seeded content uses
+> no media (the logo falls back to the "Klassd" wordmark).
+
 ## Notes
 
 - Pre-1.0, the Backend references Klassd via the `klassd/` **submodule + project references** so the
-  site builds against live CMS source. Once Klassd is published to NuGet, swap those for
-  `<PackageReference Include="Klassd.*" />` in `src/Backend/GetKlassd.Cms.csproj`.
+  site builds against live CMS source. Klassd is now [published to NuGet](https://www.nuget.org/packages/Klassd.Backoffice)
+  (prerelease) — you can swap the project references for `<PackageReference Include="Klassd.*" Version="..." />`
+  in `src/Backend/GetKlassd.Cms.csproj` if you'd rather build against the packages.
 - Bun is the JS runtime and package manager. The SSR server (`src/Frontend/server.ts`) uses
   `node:http` (which Bun implements) to bridge Vite's dev middleware.
