@@ -1,0 +1,33 @@
+# Local/prod-like two-service stack: the Klassd CMS and the Vue SSR site.
+# The site reaches the CMS over the internal Docker network (CMS_BASE), so the CMS
+# port need not be public — expose 5080 only if you want the admin reachable.
+#
+#   docker compose up --build
+#   site  → http://localhost:5173
+#   admin → http://localhost:5080/admin   (seeded admin/admin — change it)
+services:
+  cms:
+    build:
+      context: .
+      dockerfile: src/Backend/Dockerfile
+    ports:
+      - "5080:5080"
+    volumes:
+      - cms-data:/data        # SQLite database persists here
+    restart: unless-stopped
+
+  web:
+    build:
+      context: src/Frontend
+      dockerfile: Dockerfile
+    environment:
+      CMS_BASE: http://cms:5080   # SSR fetches the CMS server-side over the internal network
+      PORT: "5173"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - cms
+    restart: unless-stopped
+
+volumes:
+  cms-data:

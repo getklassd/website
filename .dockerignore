@@ -1,0 +1,14 @@
+# Build context = repo root (backend image). Keep klassd/ + src/Backend, drop build output.
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+*.db
+*.db-shm
+*.db-wal
+src/Backend/media/
+.git/
+.github/
+.vs/
+.idea/
+.DS_Store

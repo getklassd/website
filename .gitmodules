@@ -1,3 +1,3 @@
 [submodule "klassd"]
 	path = klassd
-	url = git@github.com:getklassd/Klassd.git
+	url = https://github.com/getklassd/Klassd.git
