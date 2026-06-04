@@ -139,7 +139,8 @@ main { min-height: 100vh; }
   color: #d6d6e7;
   white-space: pre;
 }
-.code-panel--install code { color: var(--accent); }
+/* Install commands wrap (rather than clip/scroll) — the lines run long. */
+.code-panel--install code { color: var(--accent); white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* Site header (CMS-managed: logo + nav links + CTA from the SiteHeader global) */
 .site-header {
@@ -205,3 +206,4 @@ main { min-height: 100vh; }
 }
 .footer-meta a { color: var(--accent); }
 .footer-credit { display: block; margin-top: 6px; color: var(--muted); }
+.footer-heart { color: var(--accent); }

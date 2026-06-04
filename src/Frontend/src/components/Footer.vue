@@ -25,8 +25,9 @@ const copyright = computed(() => footer?.copyright || '© Klassd')
         <span class="footer-credit">
           Content delivered headlessly by
           <a href="https://github.com/getklassd/Klassd">Klassd</a>.
-          Built with <a href="https://claude.com/claude-code">Claude Code</a>.
+          Built with <a href="https://claude.com/claude-code">Claude Code</a>, reviewed by humans.
         </span>
+        <span class="footer-credit">Made with <span class="footer-heart" aria-label="love">❤</span> in Denmark.</span>
       </p>
     </div>
   </footer>
