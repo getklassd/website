@@ -79,8 +79,8 @@ public static class StarterContent
             new Dictionary<string, string>
             {
                 ["logoText"] = "Klassd",
-                // Primary nav. Docs lives on GitHub while Klassd is in beta (no on-site docs yet).
-                ["navLinks"] = """[{"label":"Docs","url":"https://github.com/getklassd/Klassd#readme"}]""",
+                // Primary nav: on-site docs + a link out to the GitHub repo.
+                ["navLinks"] = """[{"label":"Docs","url":"/docs"},{"label":"GitHub","url":"https://github.com/getklassd/Klassd"}]""",
                 ["ctaText"] = "GitHub",
                 ["ctaUrl"] = "https://github.com/getklassd/Klassd",
             },
@@ -99,7 +99,7 @@ public static class StarterContent
                     new BlockData(nameof(LinkListBlock), new()
                     {
                         ["heading"] = "Project",
-                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd/Klassd"},{"label":"Docs","url":"https://github.com/getklassd/Klassd#readme"},{"label":"NuGet","url":"https://www.nuget.org/packages/Klassd.Backoffice"}]""",
+                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd/Klassd"},{"label":"Docs","url":"/docs"},{"label":"NuGet","url":"https://www.nuget.org/packages/Klassd.Backoffice"}]""",
                     }),
                 ],
             });

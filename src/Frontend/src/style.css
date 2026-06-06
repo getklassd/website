@@ -224,3 +224,101 @@ main { min-height: 100vh; }
 .footer-meta a { color: var(--accent); }
 .footer-credit { display: block; margin-top: 6px; color: var(--muted); }
 .footer-heart { color: var(--accent); }
+
+/* ── Docs (/docs) ─────────────────────────────────────────────────────────── */
+.docs {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 56px 24px 96px;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 48px;
+  align-items: start;
+}
+.docs-side { position: sticky; top: 80px; }
+.docs-toc { display: flex; flex-direction: column; gap: 4px; }
+.docs-toc-title {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted); margin: 0 0 10px;
+}
+.docs-toc-link {
+  color: var(--muted); text-decoration: none; font-size: 14px;
+  padding: 6px 10px; border-radius: 8px; border-left: 2px solid transparent;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.docs-toc-link:hover { color: var(--text); background: rgba(255, 255, 255, 0.03); }
+.docs-toc-api { color: var(--accent); margin-top: 8px; font-weight: 600; }
+.docs-toc-api:hover { color: var(--accent); }
+
+.docs-lede-meta { margin-top: 14px !important; font-size: 15px; }
+.docs-lede-meta a { color: var(--accent); font-weight: 600; }
+
+.docs-body { min-width: 0; }
+.docs-head { margin-bottom: 16px; }
+.docs-head h1 { font-size: clamp(30px, 5vw, 46px); letter-spacing: -0.02em; margin: 18px 0 16px; }
+.docs-lede { color: var(--muted); font-size: 18px; line-height: 1.65; margin: 0; max-width: 680px; }
+
+.docs-section { padding-top: 40px; scroll-margin-top: 80px; }
+.docs-section h2 {
+  font-size: 26px; letter-spacing: -0.01em; margin: 0 0 16px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.docs-section h3 { font-size: 17px; margin: 28px 0 10px; }
+.docs-section p { color: var(--muted); line-height: 1.7; margin: 0 0 14px; }
+.docs-section a { color: var(--accent); }
+
+.docs-list { color: var(--muted); line-height: 1.7; padding-left: 20px; margin: 0 0 14px; }
+.docs-list li { margin-bottom: 8px; }
+.docs-list strong, .docs-section p strong { color: var(--text); }
+
+.docs code {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+  font-size: 0.88em; background: rgba(255, 255, 255, 0.06);
+  padding: 1px 6px; border-radius: 5px; color: #d6d6e7;
+}
+.docs-alias { color: var(--accent) !important; background: rgba(var(--accent-rgb), 0.1) !important; }
+
+.docs-code {
+  margin: 0 0 18px; padding: 18px; background: #0d0d1f;
+  border: 1px solid var(--border); border-radius: 12px; overflow-x: auto;
+}
+.docs-code code {
+  background: none; padding: 0; border-radius: 0; font-size: 13px;
+  line-height: 1.6; color: #d6d6e7; white-space: pre;
+}
+
+.docs-note {
+  background: rgba(var(--accent-rgb), 0.06);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  border-radius: 12px; padding: 14px 18px; color: var(--muted) !important;
+  font-size: 14px; line-height: 1.6;
+}
+
+.docs-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; margin: 0 0 18px; }
+.docs-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.docs-table th, .docs-table td {
+  text-align: left; padding: 12px 14px; vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+.docs-table th { color: var(--text); font-weight: 600; background: rgba(255, 255, 255, 0.02); }
+.docs-table td { color: var(--muted); line-height: 1.55; }
+.docs-table tr:last-child td { border-bottom: none; }
+.docs-cell-code { margin: 0; background: none; }
+.docs-cell-code code {
+  background: none; padding: 0; font-size: 12px; line-height: 1.5;
+  color: #d6d6e7; white-space: pre-wrap; word-break: break-word;
+}
+
+.docs-cta-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 22px; }
+.docs-ghost {
+  color: var(--text) !important; text-decoration: none; font-weight: 600;
+  padding: 12px 22px; border: 1px solid var(--border); border-radius: 10px;
+}
+.docs-ghost:hover { border-color: var(--accent); }
+
+@media (max-width: 860px) {
+  .docs { grid-template-columns: 1fr; gap: 0; padding: 36px 20px 64px; }
+  .docs-side { position: static; margin-bottom: 28px; }
+  .docs-toc { flex-flow: row wrap; gap: 8px; }
+  .docs-toc-link { border-left: none; border: 1px solid var(--border); }
+}

@@ -56,6 +56,14 @@ jobs:
           bun run build:static
           kill $CMS_PID || true
 
+      # Generate the API reference with DocFX and drop it into the deploy artifact at
+      # dist/client/docs/api. Runs AFTER build:static — vite empties dist/client on build,
+      # so this must come last or its output would be wiped.
+      - name: Build API reference (DocFX)
+        run: |
+          dotnet tool restore
+          dotnet docfx docfx/docfx.json
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

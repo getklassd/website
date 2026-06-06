@@ -9,7 +9,7 @@
 // Usage (with the CMS running and the client+SSR bundles already built):
 //   CMS_BASE=http://localhost:5080 bun run build
 //   CMS_BASE=http://localhost:5080 bun prerender.ts
-import { readFileSync, writeFileSync, copyFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, copyFileSync, mkdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const root = process.cwd()
@@ -23,18 +23,28 @@ function serialize(state: unknown): string {
 const template = readFileSync(resolve(clientDir, 'index.html'), 'utf-8')
 const { render } = (await import(resolve(root, 'dist/server/entry-server.js'))) as typeof import('./src/entry-server')
 
-const { html, state } = await render('/')
-const page = template
-  .replace('<!--ssr-outlet-->', html)
-  .replace('<!--ssr-state-->', serialize(state))
+/** Render one route and bake HTML + hydration state into the template. */
+async function bake(url: string): Promise<{ markup: string; hasPage: boolean }> {
+  const { html, state } = await render(url)
+  const markup = template
+    .replace('<!--ssr-outlet-->', html)
+    .replace('<!--ssr-state-->', serialize(state))
+  return { markup, hasPage: !!state.page }
+}
 
+// Home → index.html (+ 404.html SPA fallback for unknown paths / refreshes).
+const home = await bake('/')
 const out = resolve(clientDir, 'index.html')
-writeFileSync(out, page)
-// SPA fallback so an unknown path (or a refresh) still serves the app.
+writeFileSync(out, home.markup)
 copyFileSync(out, resolve(clientDir, '404.html'))
 
-if (!state.page) {
+// Docs → /docs/index.html (static, no CMS content required).
+const docs = await bake('/docs')
+mkdirSync(resolve(clientDir, 'docs'), { recursive: true })
+writeFileSync(resolve(clientDir, 'docs/index.html'), docs.markup)
+
+if (!home.hasPage) {
   console.error('⚠ Prerendered with NO page content — is the CMS reachable at CMS_BASE?')
   process.exit(1)
 }
-console.log('✓ Prerendered dist/client/index.html (+ 404.html) with baked-in content')
+console.log('✓ Prerendered index.html (+ 404.html) and docs/index.html with baked-in content')

@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { inject } from 'vue'
+import { inject, computed } from 'vue'
 import type { Block, Page } from './api'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
 import Hero from './components/Hero.vue'
 import FeatureCard from './components/FeatureCard.vue'
 import CodeShowcase from './components/CodeShowcase.vue'
+import Docs from './components/Docs.vue'
 
 // Provided by app.ts — fetched during SSR, reused on hydration (no client refetch).
 const page = inject<Page | null>('initialPage', null)
+const route = inject<string>('route', '/')
+const isDocs = computed(() => route === '/docs')
 
 function features(p: Page): Block[] {
   return p.blockAreas['features'] ?? []
@@ -19,7 +22,9 @@ function features(p: Page): Block[] {
   <div class="site">
     <Header />
     <main>
-      <template v-if="page">
+      <Docs v-if="isDocs" />
+
+      <template v-else-if="page">
         <Hero
           :title="page.data.heroTitle"
           :subtitle="page.data.heroSubtitle"

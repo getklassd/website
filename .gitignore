@@ -19,6 +19,13 @@ dist/
 # Generated Playwright screenshots (scripts/screenshots.mjs)
 screenshots/
 
+# ── DocFX (docfx/) ──────────────────────────────────
+# Generated API metadata (docfx metadata) + intermediate site; the published
+# HTML lands in src/Frontend/dist/client/docs/api (already ignored via dist/).
+docfx/api/
+docfx/_site/
+docfx/obj/
+
 # ── IDE / OS ────────────────────────────────────────
 .vs/
 .idea/

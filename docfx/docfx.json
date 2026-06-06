@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../klassd/src",
+          "files": [
+            "Klassd.Abstractions/Klassd.Abstractions.csproj",
+            "Klassd.Core/Klassd.Core.csproj",
+            "Klassd.Backoffice/Klassd.Backoffice.csproj"
+          ]
+        }
+      ],
+      "dest": "api",
+      "namespaceLayout": "nested",
+      "memberLayout": "separatePages",
+      "enumSortOrder": "declaringOrder"
+    }
+  ],
+  "build": {
+    "content": [
+      { "files": [ "api/**.yml", "api/index.md" ] },
+      { "files": [ "*.md", "toc.yml" ] }
+    ],
+    "output": "../src/Frontend/dist/client/docs/api",
+    "template": [ "default", "modern", "templates/klassd" ],
+    "globalMetadata": {
+      "_appName": "Klassd",
+      "_appTitle": "Klassd",
+      "_appFooter": "Klassd — a code-first, headless CMS for .NET. <a href=\"/docs\">Guides</a> · <a href=\"https://github.com/getklassd/Klassd\">GitHub</a>",
+      "_appLogoUrl": "/docs",
+      "_enableSearch": true,
+      "_disableContribution": true,
+      "_disableNextArticle": true
+    },
+    "sitemap": { "baseUrl": "https://getklassd.com/docs/api/" }
+  }
+}

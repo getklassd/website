@@ -1,0 +1,32 @@
+/* Klassd brand tint over the DocFX "modern" template.
+   The modern template is Bootstrap-based and auto-handles light/dark; we only nudge the
+   accent to Klassd coral so the API reference reads as the same product as /docs. */
+:root,
+:root[data-bs-theme="light"],
+:root[data-bs-theme="dark"] {
+  --bs-primary: #fb5b4c;
+  --bs-primary-rgb: 251, 91, 76;
+  --bs-link-color: #fb5b4c;
+  --bs-link-color-rgb: 251, 91, 76;
+  --bs-link-hover-color: #e2483a;
+  --bs-link-hover-color-rgb: 226, 72, 58;
+}
+
+/* Active item in the side nav + active tab underline → coral. */
+.nav-link.active,
+.toc .nav-link.active {
+  color: #fb5b4c !important;
+}
+
+/* Brand name in the navbar. */
+.navbar-brand {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Coral focus ring rather than the default Bootstrap blue. */
+.form-control:focus,
+.btn:focus {
+  border-color: rgba(251, 91, 76, 0.6);
+  box-shadow: 0 0 0 0.2rem rgba(251, 91, 76, 0.25);
+}
