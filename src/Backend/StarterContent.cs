@@ -102,7 +102,7 @@ public static class StarterContent
                     new BlockData(nameof(LinkListBlock), new()
                     {
                         ["heading"] = "Project",
-                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd/Klassd"},{"label":"Docs","url":"/docs"},{"label":"NuGet","url":"https://www.nuget.org/packages/Klassd.Backoffice"}]""",
+                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd/Klassd"},{"label":"Docs","url":"/docs"},{"label":"NuGet","url":"https://www.nuget.org/packages?q=Klassd"}]""",
                     }),
                 ],
             });

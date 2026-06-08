@@ -94,7 +94,28 @@ const sections = [
   { id: 'capabilities', label: 'Editorial features' },
   { id: 'extend', label: 'Extending' },
   { id: 'delivery', label: 'Delivery API' },
+  { id: 'packages', label: 'Packages' },
   { id: 'comparison', label: 'Comparison' },
+]
+
+interface Pkg { id: string; purpose: string }
+const packages: Pkg[] = [
+  { id: 'Klassd.Abstractions', purpose: 'Storage/media interfaces + DB-agnostic POCOs (no dependencies).' },
+  { id: 'Klassd.Core', purpose: 'Content base types, attributes, registries, localization, default property types.' },
+  { id: 'Klassd.Backoffice', purpose: 'The engine — AddKlassd/UseKlassd, the Blazor admin, and the headless /api.' },
+  { id: 'Klassd.Data.Sqlite', purpose: 'SQLite storage adapter.' },
+  { id: 'Klassd.Data.Postgres', purpose: 'PostgreSQL storage adapter.' },
+  { id: 'Klassd.Data.MongoDb', purpose: 'MongoDB storage adapter.' },
+  { id: 'Klassd.Cache.InMemory', purpose: 'In-process read-through page cache.' },
+  { id: 'Klassd.Cache.Redis', purpose: 'Distributed (Redis) read-through page cache.' },
+  { id: 'Klassd.Cache.Hybrid', purpose: 'L1 + L2 cache over Microsoft.Extensions.Caching.Hybrid.' },
+  { id: 'Klassd.Media.FileSystem', purpose: 'Local-disk media blob store.' },
+  { id: 'Klassd.Media.S3', purpose: 'Amazon S3 (or S3-compatible) media blob store.' },
+  { id: 'Klassd.Media.GoogleCloud', purpose: 'Google Cloud Storage media blob store.' },
+  { id: 'Klassd.Auth.OpenIdConnect', purpose: 'OIDC/OAuth SSO for the backoffice (SAML via the generic seam).' },
+  { id: 'Klassd.Search.Lucene', purpose: 'Opt-in full-text search over Lucene.NET.' },
+  { id: 'Klassd.Webhooks', purpose: 'Opt-in HMAC-signed content-change webhooks.' },
+  { id: 'Klassd.GraphQL', purpose: 'Opt-in GraphQL delivery API (HotChocolate).' },
 ]
 
 interface Capability { title: string; body: string }
@@ -303,7 +324,27 @@ const comparison: CompareRow[] = [
         <p class="docs-cta-row">
           <a class="cta" href="/docs/api/">API reference</a>
           <a class="docs-ghost" href="https://github.com/getklassd/Klassd">View on GitHub</a>
-          <a class="docs-ghost" href="https://www.nuget.org/packages/Klassd.Backoffice">NuGet packages</a>
+          <a class="docs-ghost" href="https://www.nuget.org/packages?q=Klassd">All NuGet packages</a>
+        </p>
+      </section>
+
+      <!-- Packages -->
+      <section id="packages" class="docs-section">
+        <h2>Packages</h2>
+        <p>Install the engine plus the adapters you need — each keeps its SDK isolated, so you only pull in what you wire up. While Klassd is in beta, add <code>--prerelease</code>.</p>
+        <div class="docs-table-wrap">
+          <table class="docs-table">
+            <thead><tr><th>Package</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr v-for="p in packages" :key="p.id">
+                <td><a :href="`https://www.nuget.org/packages/${p.id}`" target="_blank" rel="noopener"><code class="docs-alias">{{ p.id }}</code></a></td>
+                <td>{{ p.purpose }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="docs-cta-row">
+          <a class="cta" href="https://www.nuget.org/packages?q=Klassd" target="_blank" rel="noopener">All packages on NuGet</a>
         </p>
       </section>
 
