@@ -95,6 +95,20 @@ main { min-height: 100vh; }
 .feature h3 { margin: 0 0 10px; font-size: 18px; }
 .feature p { margin: 0; color: var(--muted); line-height: 1.6; }
 
+/* Comparison teaser — a quiet band linking to the full table in /docs */
+.compare-teaser {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px 24px;
+  text-align: center;
+}
+.compare-teaser p { margin: 0; color: var(--muted); font-size: 15px; }
+
 /* Code showcase ("see it in code") */
 .showcase {
   max-width: 1200px;

@@ -47,6 +47,11 @@ function features(p: Page): Block[] {
           :code="page.data.codeSample"
           :install="page.data.installCommand"
         />
+
+        <section class="compare-teaser">
+          <p>Evaluating headless CMSs? See how Klassd's code-first approach compares to Umbraco and Payload.</p>
+          <a class="cta" href="/docs#comparison">Compare →</a>
+        </section>
       </template>
 
       <p v-else class="status">No HomePage content yet — create one in the CMS admin at /admin.</p>
