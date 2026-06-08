@@ -324,7 +324,7 @@ const comparison: CompareRow[] = [
         <p class="docs-cta-row">
           <a class="cta" href="/docs/api/">API reference</a>
           <a class="docs-ghost" href="https://github.com/getklassd/Klassd">View on GitHub</a>
-          <a class="docs-ghost" href="https://www.nuget.org/packages?q=Klassd">All NuGet packages</a>
+          <a class="docs-ghost" href="https://www.nuget.org/profiles/getklassd">All NuGet packages</a>
         </p>
       </section>
 
@@ -344,7 +344,7 @@ const comparison: CompareRow[] = [
           </table>
         </div>
         <p class="docs-cta-row">
-          <a class="cta" href="https://www.nuget.org/packages?q=Klassd" target="_blank" rel="noopener">All packages on NuGet</a>
+          <a class="cta" href="https://www.nuget.org/profiles/getklassd" target="_blank" rel="noopener">All packages on NuGet</a>
         </p>
       </section>
 
