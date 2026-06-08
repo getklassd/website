@@ -79,8 +79,12 @@ main { min-height: 100vh; }
   margin: 0 auto;
   padding: 24px 24px 96px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));   /* 3 per row (6 cards ⇒ 3/3) */
   gap: 20px;
+}
+/* Tablets: 2 per row. */
+@media (max-width: 920px) {
+  .features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .feature {
   background: var(--panel);
@@ -147,7 +151,7 @@ main { min-height: 100vh; }
    (Placed after the base .code-panel rules so it wins the cascade.) */
 @media (max-width: 600px) {
   .hero { padding: 72px 20px 52px; }
-  .features { padding: 16px 20px 52px; gap: 16px; }
+  .features { padding: 16px 20px 52px; gap: 16px; grid-template-columns: 1fr; }
   .showcase { padding: 8px 16px 56px; }
   .showcase-intro { margin-bottom: 24px; }
   .code-panel pre { padding: 14px; }
