@@ -28,6 +28,11 @@ const copyright = computed(() => footer?.copyright || '© Klassd')
           Built with <a href="https://claude.com/claude-code">Claude Code</a>, reviewed by humans.
         </span>
         <span class="footer-credit">Made with <span class="footer-heart" aria-label="love">❤</span> in Denmark.</span>
+        <span class="footer-credit footer-badge">
+          <a href="https://dashboard.simpleanalytics.com/?utm_source=&amp;utm_content=badge&amp;affiliate=giwug" referrerpolicy="origin" target="_blank" rel="noopener">
+            <img src="https://simpleanalyticsbadges.com/?mode=dark&amp;counter=false" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous" alt="Analytics by Simple Analytics" />
+          </a>
+        </span>
       </p>
     </div>
   </footer>
