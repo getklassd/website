@@ -67,8 +67,11 @@ public static class StarterContent
                 ["features"] =
                 [
                     new BlockData(nameof(FeatureBlock), new() { ["title"] = "Code-first", ["body"] = "Your content types are C# classes. Refactor them in your IDE — no content-type designer." }),
-                    new BlockData(nameof(FeatureBlock), new() { ["title"] = "Headless", ["body"] = "A public JSON delivery API any frontend can read — this site is a Vue app consuming it." }),
+                    new BlockData(nameof(FeatureBlock), new() { ["title"] = "Headless", ["body"] = "A public JSON (and opt-in GraphQL) delivery API any frontend can read — this site is a Vue app consuming it." }),
                     new BlockData(nameof(FeatureBlock), new() { ["title"] = "Pluggable", ["body"] = "Swap storage (Mongo/Postgres/SQLite) and media (FileSystem/S3/GCS) backends freely." }),
+                    new BlockData(nameof(FeatureBlock), new() { ["title"] = "Drafts & versioning", ["body"] = "Edit a draft without touching what's live, publish when ready, schedule it, and roll back to any prior version." }),
+                    new BlockData(nameof(FeatureBlock), new() { ["title"] = "Roles & search", ["body"] = "Capability-based roles (Editor/Author), plus opt-in full-text search over Lucene.NET." }),
+                    new BlockData(nameof(FeatureBlock), new() { ["title"] = "Extensible", ["body"] = "HMAC-signed webhooks and synchronous in-process notifications you can hook into — or cancel." }),
                 ],
             }));
 

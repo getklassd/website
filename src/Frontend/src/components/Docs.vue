@@ -19,6 +19,10 @@ const fieldTypes: FieldType[] = [
   { alias: 'blocks', clr: 'BlockArea', declare: 'public BlockArea PageBlocks { get; set; } = new();', notes: 'A named, schedulable area of block instances. Declare one property per area.' },
   { alias: 'media', clr: 'MediaReference', declare: 'public MediaReference Image { get; set; } = new();', notes: 'Media picker; stores the media item id. A string with [CmsField(FieldType = "media")] also works.' },
   { alias: 'relationship', clr: 'PageReference', declare: '[AllowedRelations(typeof(ArticlePage))]\npublic PageReference Related { get; set; } = new();', notes: 'Page picker; stores the target page’s ContentId. Restrict targets with [AllowedRelations]; omit for any page type.' },
+  { alias: 'richtext', clr: '— (opt-in)', declare: '[CmsField(FieldType = "richtext")]\npublic string Body { get; set; } = "";', notes: 'Rich text editor (Quill); stores HTML.' },
+  { alias: 'email / url / color', clr: '— (opt-in)', declare: '[CmsField(FieldType = "email")]\npublic string Contact { get; set; } = "";', notes: 'HTML5 email / URL / colour inputs. Opt in on a string via [CmsField].' },
+  { alias: 'decimal', clr: 'decimal, double, float', declare: 'public decimal Price { get; set; }', notes: 'Fractional number input.' },
+  { alias: 'date / time', clr: 'DateOnly / TimeOnly', declare: 'public DateOnly Released { get; set; }', notes: 'Date-only / time-only pickers.' },
 ]
 
 interface AttrDoc { name: string; target: string; options: string; desc: string }
@@ -87,8 +91,37 @@ const sections = [
   { id: 'content-types', label: 'Content types' },
   { id: 'property-types', label: 'Property types' },
   { id: 'attributes', label: 'Attributes' },
+  { id: 'capabilities', label: 'Editorial features' },
   { id: 'extend', label: 'Extending' },
   { id: 'delivery', label: 'Delivery API' },
+  { id: 'comparison', label: 'Comparison' },
+]
+
+interface Capability { title: string; body: string }
+const capabilities: Capability[] = [
+  { title: 'Drafts & versioning', body: 'Edits go to a draft — the live page is untouched until you Publish. Full version history with one-click rollback, plus per-page scheduled publishing.' },
+  { title: 'Roles & permissions', body: 'Capability-based roles (Administrator / Editor / Author). Authors save drafts; Editors publish. Enforced on the API and reflected in the admin UI.' },
+  { title: 'Full-text search', body: 'Opt-in, storage-agnostic Lucene.NET index — tokenized and ranked, kept live via content events and rebuilt from the database on startup.' },
+  { title: 'Webhooks & notifications', body: 'HMAC-signed webhooks for content changes, plus synchronous in-process notifications you can hook to mutate or cancel an operation (before/after publish, save, delete).' },
+  { title: 'GraphQL (opt-in)', body: 'A read-only GraphQL delivery API over HotChocolate, mirroring the REST endpoints — added as a package, not in core.' },
+  { title: 'Caching', body: 'Read-through page cache: in-process, Redis, or an L1+L2 HybridCache tier.' },
+]
+
+interface CompareRow { feature: string; klassd: string; umbraco: string; payload: string }
+const comparison: CompareRow[] = [
+  { feature: 'Code-first schema', klassd: 'C# classes', umbraco: 'UI / database-driven', payload: 'TypeScript config' },
+  { feature: 'Admin UI', klassd: 'Blazor (no JS build)', umbraco: 'Web-components SPA', payload: 'React (in your Next.js app)' },
+  { feature: 'Drafts & versioning', klassd: 'Yes', umbraco: 'Yes', payload: 'Yes (+ autosave)' },
+  { feature: 'Scheduled publishing', klassd: 'Yes', umbraco: 'Yes', payload: 'Yes' },
+  { feature: 'Roles & permissions', klassd: 'Capabilities + roles', umbraco: 'User groups', payload: 'Access-as-code' },
+  { feature: 'Full-text search', klassd: 'Lucene.NET (opt-in)', umbraco: 'Examine / Lucene', payload: 'Plugin' },
+  { feature: 'Webhooks / events', klassd: 'Webhooks + notifications', umbraco: 'Notifications', payload: 'Hooks' },
+  { feature: 'REST delivery', klassd: 'Yes', umbraco: 'Yes', payload: 'Yes' },
+  { feature: 'GraphQL', klassd: 'Opt-in package', umbraco: 'Cloud (Heartcore) only', payload: 'Core' },
+  { feature: 'Storage backends', klassd: 'Mongo / Postgres / SQLite', umbraco: 'SQL Server / SQLite', payload: 'Mongo / Postgres / SQLite' },
+  { feature: 'Localization', klassd: 'Per-field + markets', umbraco: 'Culture + segment variants', payload: 'Field-level locales' },
+  { feature: 'Runtime / platform', klassd: '.NET (Blazor)', umbraco: '.NET (ASP.NET Core)', payload: 'Node (Next.js)' },
+  { feature: 'License', klassd: 'MIT', umbraco: 'MIT', payload: 'MIT' },
 ]
 </script>
 
@@ -207,6 +240,18 @@ const sections = [
         </div>
       </section>
 
+      <!-- Editorial features -->
+      <section id="capabilities" class="docs-section">
+        <h2>Editorial features</h2>
+        <p>Beyond the content model, the engine ships the workflow features editors expect:</p>
+        <div class="docs-cards">
+          <div v-for="c in capabilities" :key="c.title" class="docs-card">
+            <h3>{{ c.title }}</h3>
+            <p>{{ c.body }}</p>
+          </div>
+        </div>
+      </section>
+
       <!-- Extending -->
       <section id="extend" class="docs-section">
         <h2>Extending Klassd</h2>
@@ -243,16 +288,48 @@ const sections = [
         <ul class="docs-list">
           <li><code>GET /api/pages</code> — all pages for a locale (<code>?locale=en</code>).</li>
           <li><code>GET /api/pages/{id}</code> — a single page.</li>
+          <li><code>GET /api/pages/by-slug/{**slug}</code> — a page by its slug (<code>?locale=en</code>).</li>
           <li><code>GET /api/pages/content/{contentId}</code> — a page and its translations (resolve relationships here).</li>
           <li><code>GET /api/pages/{id}/translations</code> — every locale of one page.</li>
           <li><code>GET /api/globals/{name}</code> — a global singleton (e.g. <code>SiteHeader</code>).</li>
           <li><code>GET /api/media/{id}</code> — a media item's bytes.</li>
         </ul>
-        <p>Block scheduling resolves per request, and <code>?preview=&lt;utc&gt;</code> time-travels delivery when enabled.</p>
+        <p>
+          Only <strong>published</strong>, in-window content is delivered. Single-page GETs accept
+          <code>?depth=1</code> to resolve <code>PageReference</code>/<code>MediaReference</code> fields to URLs
+          and <code>?expand=</code> to pick which. Scheduling resolves per request; <code>?preview=&lt;utc&gt;</code>
+          time-travels delivery when enabled. A <code>/graphql</code> endpoint is available via the opt-in GraphQL package.
+        </p>
         <p class="docs-cta-row">
           <a class="cta" href="/docs/api/">API reference</a>
           <a class="docs-ghost" href="https://github.com/getklassd/Klassd">View on GitHub</a>
           <a class="docs-ghost" href="https://www.nuget.org/packages/Klassd.Backoffice">NuGet packages</a>
+        </p>
+      </section>
+
+      <!-- Comparison -->
+      <section id="comparison" class="docs-section">
+        <h2>Klassd vs Umbraco vs Payload</h2>
+        <p>How Klassd's code-first, .NET-native approach compares to two popular headless CMSs. All three are open-source (MIT).</p>
+        <div class="docs-table-wrap">
+          <table class="docs-table">
+            <thead>
+              <tr><th>Feature</th><th>Klassd</th><th>Umbraco</th><th>Payload</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in comparison" :key="r.feature">
+                <td>{{ r.feature }}</td>
+                <td>{{ r.klassd }}</td>
+                <td>{{ r.umbraco }}</td>
+                <td>{{ r.payload }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="docs-note">
+          Klassd's niche: true code-first content modelling in C#, a Blazor admin with no JS build step, and
+          pluggable storage — shipped as NuGet packages you compose. Comparison reflects each project's
+          core/open-source offering as of 2026.
         </p>
       </section>
     </article>
