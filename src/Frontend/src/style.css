@@ -284,6 +284,9 @@ main { min-height: 100vh; }
 .docs-section h3 { font-size: 17px; margin: 28px 0 10px; }
 .docs-section p { color: var(--muted); line-height: 1.7; margin: 0 0 14px; }
 .docs-section a { color: var(--accent); }
+/* .docs-section a (0,1,1) outranks .cta (0,1,0), so the coral CTA button needs its
+   white label restored explicitly — otherwise it renders coral-on-coral (unreadable). */
+.docs-section a.cta { color: #fff; }
 
 .docs-list { color: var(--muted); line-height: 1.7; padding-left: 20px; margin: 0 0 14px; }
 .docs-list li { margin-bottom: 8px; }
