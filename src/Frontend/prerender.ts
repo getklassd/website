@@ -44,13 +44,18 @@ const docs = await bake('/docs')
 mkdirSync(resolve(clientDir, 'docs'), { recursive: true })
 writeFileSync(resolve(clientDir, 'docs/index.html'), docs.markup)
 
-// Workflows → /workflows/index.html (static, no CMS content required).
+// Workflows landing → /workflows/index.html (static, no CMS content required).
 const workflows = await bake('/workflows')
 mkdirSync(resolve(clientDir, 'workflows'), { recursive: true })
 writeFileSync(resolve(clientDir, 'workflows/index.html'), workflows.markup)
+
+// Workflows docs → /workflows/docs/index.html (static, no CMS content required).
+const workflowsDocs = await bake('/workflows/docs')
+mkdirSync(resolve(clientDir, 'workflows/docs'), { recursive: true })
+writeFileSync(resolve(clientDir, 'workflows/docs/index.html'), workflowsDocs.markup)
 
 if (!home.hasPage) {
   console.error('⚠ Prerendered with NO page content — is the CMS reachable at CMS_BASE?')
   process.exit(1)
 }
-console.log('✓ Prerendered index.html (+ 404.html), docs/index.html and workflows/index.html with baked-in content')
+console.log('✓ Prerendered index.html (+ 404.html), docs/, workflows/ and workflows/docs/ with baked-in content')

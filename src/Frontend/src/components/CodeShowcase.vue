@@ -1,12 +1,17 @@
 <script setup lang="ts">
 // A "see it in code" section: a C# sample on the left, install commands on the right.
-// All copy is CMS-driven (HomePage fields), so it's editable in /admin like everything else.
-defineProps<{
-  heading: string
-  subtitle: string
-  code: string
-  install: string
-}>()
+// On the home page the copy is CMS-driven (HomePage fields); static pages (e.g. /workflows)
+// pass their own props. codeCaption labels the left panel (defaults to the CMS home sample).
+withDefaults(
+  defineProps<{
+    heading: string
+    subtitle: string
+    code: string
+    install: string
+    codeCaption?: string
+  }>(),
+  { codeCaption: 'HomePage.cs' },
+)
 </script>
 
 <template>
@@ -17,7 +22,7 @@ defineProps<{
     </div>
     <div class="showcase-grid">
       <figure class="code-panel">
-        <figcaption>HomePage.cs</figcaption>
+        <figcaption>{{ codeCaption }}</figcaption>
         <pre><code>{{ code }}</code></pre>
       </figure>
       <figure v-if="install" class="code-panel code-panel--install">

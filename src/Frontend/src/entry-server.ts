@@ -7,6 +7,7 @@ import { renderHead } from './seo'
 function resolveRoute(url: string): string {
   const path = (url.split('?')[0] || '/').replace(/\/+$/, '') || '/'
   if (path === '/docs') return '/docs'
+  if (path === '/workflows/docs') return '/workflows/docs'
   if (path === '/workflows') return '/workflows'
   return '/'
 }

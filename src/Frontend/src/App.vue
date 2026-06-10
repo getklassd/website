@@ -8,12 +8,14 @@ import FeatureCard from './components/FeatureCard.vue'
 import CodeShowcase from './components/CodeShowcase.vue'
 import Docs from './components/Docs.vue'
 import Workflows from './components/Workflows.vue'
+import WorkflowsDocs from './components/WorkflowsDocs.vue'
 
 // Provided by app.ts — fetched during SSR, reused on hydration (no client refetch).
 const page = inject<Page | null>('initialPage', null)
 const route = inject<string>('route', '/')
 const isDocs = computed(() => route === '/docs')
 const isWorkflows = computed(() => route === '/workflows')
+const isWorkflowsDocs = computed(() => route === '/workflows/docs')
 
 function features(p: Page): Block[] {
   return p.blockAreas['features'] ?? []
@@ -25,6 +27,8 @@ function features(p: Page): Block[] {
     <Header />
     <main>
       <Docs v-if="isDocs" />
+
+      <WorkflowsDocs v-else-if="isWorkflowsDocs" />
 
       <Workflows v-else-if="isWorkflows" />
 

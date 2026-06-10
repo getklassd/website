@@ -32,6 +32,12 @@ const ROUTES: Record<string, Seo> = {
     description:
       'Klassd.Workflows is a code-first background-job and DAG workflow engine for .NET. Define jobs as C# classes, run each as its own Kubernetes pod, and compose them into workflows.',
   },
+  '/workflows/docs': {
+    path: '/workflows/docs',
+    title: 'Docs — Klassd.Workflows, code-first jobs & workflows for .NET',
+    description:
+      'Klassd.Workflows docs: define jobs in C#, schedule with cron, compose DAG workflows (fan-out, conditions, retries, artifacts), pick local or Kubernetes executors and a durable store.',
+  },
 }
 
 /** Resolve a route to its SEO entry, falling back to the home page. */

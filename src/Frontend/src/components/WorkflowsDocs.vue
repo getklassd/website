@@ -1,0 +1,210 @@
+<script setup lang="ts">
+// Docs for the Klassd.Workflows package. Content lives here (not in the CMS) so it's versioned
+// with the site and renders with zero CMS dependency — it prerenders into /workflows/docs/index.html.
+// The marketing landing lives at /workflows (Workflows.vue). Reuses the shared `docs-*` styles.
+
+const installCode = `dotnet add package Klassd.Workflows.Core --prerelease
+dotnet add package Klassd.Workflows.Storage.Postgres --prerelease   # durable store (or .Storage.MongoDb)
+dotnet add package Klassd.Workflows.Kubernetes --prerelease         # K8s executor (omit for local only)
+dotnet add package Klassd.Workflows.Artifacts.S3 --prerelease       # artifact store (or .Artifacts.Gcs)`
+
+const jobCode = `public sealed class MyJob : IJob
+{
+    public async Task RunAsync(IJobContext ctx)
+    {
+        ctx.Log("starting");
+        ctx.ReportProgress(50, "halfway");
+        await Task.Delay(1000, ctx.CancellationToken);
+        ctx.Log("done");
+    }
+}`
+
+const wireCode = `var workflows = builder.Services.AddKlassdWorkflowsCore();
+workflows.UsePostgres("Host=…;Database=…;Username=…;Password=…");  // or .UseMongo(...) / in-memory
+
+builder.Services.AddKubernetesExecutor(builder.Configuration);     // or AddLocalExecutor(workerDll)`
+
+const scheduleCode = `scheduler.AddOrUpdateRecurring<MyJob>("nightly", "0 2 * * *");   // cron
+await scheduler.EnqueueAsync<MyJob>();                            // fire now`
+
+const dagCode = `registry.Register(new WorkflowBuilder("catalog-integration")
+    .Add<MarketFinderJob>("markets")                       // root: emits "market_ids"
+    .Add<DataProxyJob>("data-proxy")                       // parallel root: writes an artifact
+    .Add<IntegrationJob>("integration", n => n
+        .DependsOn("markets", "data-proxy")
+        .FanOutOver("markets", "market_ids", itemArgument: "market"))   // one pod per market
+    .Add<PublishJob>("publish", n => n.DependsOn("integration").WithRetries(2))
+    .Add<FinalizerJob>("finalizer", n => n
+        .DependsOn("publish", "data-proxy")
+        .BindInput("dataset_ref", "data-proxy", "dataset_ref"))          // reads the artifact
+    .Build());`
+
+const sections = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'quickstart', label: 'Quickstart' },
+  { id: 'scheduling', label: 'Scheduling' },
+  { id: 'workflows', label: 'Workflows (DAGs)' },
+  { id: 'executors', label: 'Executors' },
+  { id: 'storage', label: 'Storage & artifacts' },
+  { id: 'packages', label: 'Packages' },
+]
+
+interface Feature { title: string; body: string }
+const features: Feature[] = [
+  { title: 'Code-first jobs', body: 'A job is a C# class implementing IJob — no attributes-as-config, no YAML. The engine discovers it by type name.' },
+  { title: 'Runs in its own pod', body: 'Each execution is a batch/v1 Kubernetes Job (one pod), with per-job CPU/memory requests and limits resolved from attribute + config.' },
+  { title: 'Same worker, local too', body: 'In dev the same worker runs as a child process — no cluster needed. Switch to Kubernetes with one config setting.' },
+  { title: 'DAG workflows', body: 'Compose jobs into a graph: dependencies, fan-out (one pod per item), conditional nodes, retries, and artifact passing between nodes.' },
+  { title: 'Live dashboard', body: 'A Blazor Server UI shows the job list, per-job console + progress, recurring jobs, and an SVG view of each DAG run.' },
+  { title: 'Durable & pluggable', body: 'Swap the job store (in-memory / PostgreSQL / MongoDB) and the artifact store (filesystem / S3 / GCS) — or ship your own adapter.' },
+]
+
+interface Pkg { id: string; purpose: string }
+const packages: Pkg[] = [
+  { id: 'Klassd.Workflows.Abstractions', purpose: 'The contract jobs implement: IJob, IJobContext, the IArtifactStore seam, and the worker stdout protocol. No dependencies.' },
+  { id: 'Klassd.Workflows.Core', purpose: 'Scheduler, in-memory store, cron recurring loop (Cronos), job catalog, DAG orchestrator, filesystem artifact store, and the local-process executor.' },
+  { id: 'Klassd.Workflows.Kubernetes', purpose: 'KubernetesJobExecutor — creates a batch/v1 Job per run and tails the pod logs. AddKubernetesExecutor().' },
+  { id: 'Klassd.Workflows.Storage.Postgres', purpose: 'Durable IJobStore on PostgreSQL (jsonb documents + append-only logs). WorkflowsBuilder.UsePostgres().' },
+  { id: 'Klassd.Workflows.Storage.MongoDb', purpose: 'Durable IJobStore on MongoDB. WorkflowsBuilder.UseMongo().' },
+  { id: 'Klassd.Workflows.Artifacts.S3', purpose: 'IArtifactStore on S3 / S3-compatible stores (provider name "s3") for large payloads passed between nodes.' },
+  { id: 'Klassd.Workflows.Artifacts.Gcs', purpose: 'IArtifactStore on Google Cloud Storage (provider name "gcs").' },
+]
+</script>
+
+<template>
+  <div class="docs">
+    <aside class="docs-side">
+      <nav class="docs-toc" aria-label="Workflows sections">
+        <p class="docs-toc-title">Klassd.Workflows</p>
+        <a v-for="s in sections" :key="s.id" :href="`#${s.id}`" class="docs-toc-link">{{ s.label }}</a>
+        <a href="https://github.com/getklassd/Klassd.Workflows" target="_blank" rel="noopener" class="docs-toc-link docs-toc-api">GitHub repo →</a>
+      </nav>
+    </aside>
+
+    <article class="docs-body">
+      <header class="docs-head">
+        <span class="badge">Workflows</span>
+        <h1>Background jobs &amp; workflows, code-first</h1>
+        <p class="docs-lede">
+          Klassd.Workflows is a code-first, NuGet-distributed background-job and workflow engine for
+          .NET. Jobs are plain C# classes; the scheduler runs each one as its <strong>own Kubernetes
+          pod</strong> in production and as a local process in dev — the same worker either way.
+          Compose jobs into DAG workflows and watch them run live.
+        </p>
+        <p class="docs-lede-meta">
+          ← Back to the <a href="/workflows">Workflows overview</a>. A companion to
+          <a href="/">Klassd</a>, the code-first headless CMS — same philosophy, separate package.
+        </p>
+      </header>
+
+      <!-- Overview -->
+      <section id="overview" class="docs-section">
+        <h2>What you get</h2>
+        <div class="docs-cards">
+          <div v-for="f in features" :key="f.title" class="docs-card">
+            <h3>{{ f.title }}</h3>
+            <p>{{ f.body }}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quickstart -->
+      <section id="quickstart" class="docs-section">
+        <h2>Quickstart</h2>
+        <p>Install the core plus the adapters you need. While Klassd.Workflows is in beta the packages are prerelease:</p>
+        <pre class="docs-code"><code>{{ installCode }}</code></pre>
+
+        <h3>1. Define a job</h3>
+        <p>Any class implementing <code>IJob</code> is a unit of work. Use the <code>IJobContext</code> to log, report progress, and read arguments:</p>
+        <pre class="docs-code"><code>{{ jobCode }}</code></pre>
+
+        <h3>2. Wire it up in <code>Program.cs</code></h3>
+        <p><code>AddKlassdWorkflowsCore()</code> returns a builder you use to pick a durable store; pick an executor separately:</p>
+        <pre class="docs-code"><code>{{ wireCode }}</code></pre>
+
+        <h3>3. Run</h3>
+        <p>Enqueue jobs from code, or open the dashboard to start/stop them and watch live console output.</p>
+      </section>
+
+      <!-- Scheduling -->
+      <section id="scheduling" class="docs-section">
+        <h2>Scheduling</h2>
+        <p>Fire a job now, or register a recurring job with a cron expression (parsed by Cronos):</p>
+        <pre class="docs-code"><code>{{ scheduleCode }}</code></pre>
+        <p>
+          Recurring workflows are registered the same way with
+          <code>AddOrUpdateRecurringWorkflow(id, name, cron)</code>. Pod resources (CPU/memory
+          requests &amp; limits) are set per job with a <code>[JobResources]</code> attribute and can
+          be retuned from config without a recompile.
+        </p>
+      </section>
+
+      <!-- Workflows -->
+      <section id="workflows" class="docs-section">
+        <h2>Workflows (DAGs)</h2>
+        <p>
+          Jobs compose into a directed acyclic graph that fans out, waits on dependencies and passes
+          data between nodes. The orchestrator runs in the scheduler; each node runs as a normal
+          worker pod, so every node has its own live console.
+        </p>
+        <pre class="docs-code"><code>{{ dagCode }}</code></pre>
+        <ul class="docs-list">
+          <li><strong>Dependencies</strong> — a node starts once all its dependencies are satisfied; a failed dependency skips dependents.</li>
+          <li><strong>Fan-out</strong> — read an upstream output as a JSON array and start one execution per element.</li>
+          <li><strong>Conditions</strong> — run a node only when a predicate over upstream outputs holds (otherwise it's benignly omitted).</li>
+          <li><strong>Retries</strong> — re-run a failed execution up to <em>n</em> times, per fan-out item.</li>
+          <li><strong>Artifacts</strong> — large payloads pass through an <code>IArtifactStore</code>; a node saves an artifact and publishes the small reference downstream.</li>
+        </ul>
+      </section>
+
+      <!-- Executors -->
+      <section id="executors" class="docs-section">
+        <h2>Executors: local &amp; Kubernetes</h2>
+        <p>
+          The <strong>same worker</strong> runs locally and in the cluster — only the executor that
+          launches it differs. Communication is a line protocol on stdout, so Kubernetes pod logs are
+          the transport for free.
+        </p>
+        <ul class="docs-list">
+          <li><strong>Local</strong> — <code>AddLocalExecutor(...)</code> launches the worker as a child process per job. No cluster required; ideal for dev.</li>
+          <li><strong>Kubernetes</strong> — <code>AddKubernetesExecutor(...)</code> creates a <code>batch/v1</code> Job (one pod, <code>restartPolicy: Never</code>) per execution, tails its logs, and cleans up via <code>ttlSecondsAfterFinished</code>. Stopping a job deletes the Job; SIGTERM cancels the worker's token.</li>
+        </ul>
+      </section>
+
+      <!-- Storage -->
+      <section id="storage" class="docs-section">
+        <h2>Storage &amp; artifacts</h2>
+        <p>Two pluggable seams, both with built-in adapters and open for your own:</p>
+        <ul class="docs-list">
+          <li><strong>Job store (<code>IJobStore</code>)</strong> — holds executions, recurring entries and workflow runs. In-memory by default; <code>UsePostgres(...)</code> or <code>UseMongo(...)</code> for durability.</li>
+          <li><strong>Artifact store (<code>IArtifactStore</code>)</strong> — holds large payloads between nodes. The worker selects a provider by name at runtime (<code>file</code>, <code>s3</code>, <code>gcs</code>), so the choice is per-deployment, not compiled in.</li>
+        </ul>
+        <p>
+          Add your own by implementing the interface (plus an <code>IArtifactStoreProvider</code> for
+          artifacts) — exactly how the Postgres/Mongo and S3/GCS packages do it.
+        </p>
+      </section>
+
+      <!-- Packages -->
+      <section id="packages" class="docs-section">
+        <h2>Packages</h2>
+        <p>Install the core plus the adapters you need — each keeps its SDK isolated, so you only pull in what you wire up. While in beta, add <code>--prerelease</code>.</p>
+        <div class="docs-table-wrap">
+          <table class="docs-table">
+            <thead><tr><th>Package</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr v-for="p in packages" :key="p.id">
+                <td><a :href="`https://www.nuget.org/packages/${p.id}`" target="_blank" rel="noopener"><code class="docs-alias">{{ p.id }}</code></a></td>
+                <td>{{ p.purpose }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="docs-cta-row">
+          <a class="cta" href="https://github.com/getklassd/Klassd.Workflows" target="_blank" rel="noopener">View on GitHub</a>
+          <a class="docs-ghost" href="https://www.nuget.org/profiles/getklassd" target="_blank" rel="noopener">All NuGet packages</a>
+        </p>
+      </section>
+    </article>
+  </div>
+</template>

@@ -1,16 +1,20 @@
 <script setup lang="ts">
-defineProps<{
-  title: string
-  subtitle: string
-  ctaText?: string
-  ctaUrl?: string
-}>()
+withDefaults(
+  defineProps<{
+    title: string
+    subtitle: string
+    ctaText?: string
+    ctaUrl?: string
+    badge?: string
+  }>(),
+  { badge: 'Headless CMS for .NET' },
+)
 </script>
 
 <template>
   <header class="hero">
     <div class="hero-inner">
-      <span class="badge">Headless CMS for .NET</span>
+      <span class="badge">{{ badge }}</span>
       <h1>{{ title }}</h1>
       <p class="subtitle">{{ subtitle }}</p>
       <a v-if="ctaText && ctaUrl" class="cta" :href="ctaUrl">{{ ctaText }} →</a>
