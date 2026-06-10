@@ -11,6 +11,8 @@ export interface Seo {
   path: string
   title: string
   description: string
+  /** Social-card image path (root-relative); defaults to the CMS og.png. */
+  image?: string
 }
 
 const ROUTES: Record<string, Seo> = {
@@ -31,12 +33,14 @@ const ROUTES: Record<string, Seo> = {
     title: 'Klassd.Workflows — code-first background jobs & workflows for .NET',
     description:
       'Klassd.Workflows is a code-first background-job and DAG workflow engine for .NET. Define jobs as C# classes, run each as its own Kubernetes pod, and compose them into workflows.',
+    image: '/og-workflows.png',
   },
   '/workflows/docs': {
     path: '/workflows/docs',
     title: 'Docs — Klassd.Workflows, code-first jobs & workflows for .NET',
     description:
       'Klassd.Workflows docs: define jobs in C#, schedule with cron, compose DAG workflows (fan-out, conditions, retries, artifacts), pick local or Kubernetes executors and a durable store.',
+    image: '/og-workflows.png',
   },
 }
 
@@ -60,6 +64,7 @@ export function renderHead(route: string): string {
   const url = `${SITE}${seo.path}`
   const title = esc(seo.title)
   const description = esc(seo.description)
+  const image = seo.image ? `${SITE}${seo.image}` : OG_IMAGE
 
   return [
     `<title>${title}</title>`,
@@ -70,12 +75,12 @@ export function renderHead(route: string): string {
     `<meta property="og:url" content="${url}" />`,
     `<meta property="og:title" content="${title}" />`,
     `<meta property="og:description" content="${description}" />`,
-    `<meta property="og:image" content="${OG_IMAGE}" />`,
+    `<meta property="og:image" content="${image}" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${title}" />`,
     `<meta name="twitter:description" content="${description}" />`,
-    `<meta name="twitter:image" content="${OG_IMAGE}" />`,
+    `<meta name="twitter:image" content="${image}" />`,
   ].join('\n    ')
 }

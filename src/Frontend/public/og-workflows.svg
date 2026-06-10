@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="Klassd.Workflows — code-first jobs and workflows for .NET">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#fb5b4c" stop-opacity="0.22"/>
+      <stop offset="70%" stop-color="#0b0b17" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0b0b17"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- wordmark -->
+  <text x="100" y="232"
+        font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+        font-size="92" font-weight="800" letter-spacing="-3">
+    <tspan fill="#ededef">Klass</tspan><tspan fill="#fb5b4c">d</tspan><tspan fill="#9aa0b4">.Workflows</tspan>
+  </text>
+
+  <!-- tagline -->
+  <text x="104" y="322"
+        font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+        font-size="46" font-weight="600" fill="#e7e7f0">Code-first jobs &amp; workflows for .NET</text>
+
+  <text x="104" y="388"
+        font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+        font-size="30" font-weight="400" fill="#9aa0b4">Run C# jobs as their own Kubernetes pods.</text>
+  <text x="104" y="430"
+        font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif"
+        font-size="30" font-weight="400" fill="#9aa0b4">Compose them into DAG workflows, watch each run live.</text>
+
+  <!-- url pill -->
+  <rect x="104" y="520" width="392" height="56" rx="28" fill="none" stroke="#23233f" stroke-width="2"/>
+  <text x="300" y="557" text-anchor="middle"
+        font-family="ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace"
+        font-size="26" font-weight="500" fill="#fb5b4c">getklassd.com/workflows</text>
+</svg>
