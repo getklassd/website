@@ -82,8 +82,8 @@ public static class StarterContent
             new Dictionary<string, string>
             {
                 ["logoText"] = "Klassd",
-                // Primary nav: on-site docs + a link out to the GitHub repo.
-                ["navLinks"] = """[{"label":"Docs","url":"/docs"},{"label":"GitHub","url":"https://github.com/getklassd/Klassd"}]""",
+                // Primary nav: on-site docs, the Workflows package page, + a link out to the GitHub repo.
+                ["navLinks"] = """[{"label":"Docs","url":"/docs"},{"label":"Workflows","url":"/workflows"},{"label":"GitHub","url":"https://github.com/getklassd/Klassd"}]""",
                 ["ctaText"] = "GitHub",
                 ["ctaUrl"] = "https://github.com/getklassd/Klassd",
             },
@@ -102,7 +102,7 @@ public static class StarterContent
                     new BlockData(nameof(LinkListBlock), new()
                     {
                         ["heading"] = "Project",
-                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd/Klassd"},{"label":"Docs","url":"/docs"},{"label":"NuGet","url":"https://www.nuget.org/profiles/getklassd"}]""",
+                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd/Klassd"},{"label":"Docs","url":"/docs"},{"label":"Workflows","url":"/workflows"},{"label":"NuGet","url":"https://www.nuget.org/profiles/getklassd"}]""",
                     }),
                 ],
             });

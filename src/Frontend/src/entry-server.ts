@@ -2,10 +2,12 @@ import { renderToString } from 'vue/server-renderer'
 import { createApp, type AppState } from './app'
 import { fetchHome, getSiteHeader, getSiteFooter } from './api'
 
-/** Map a request URL to a known view. Everything that isn't /docs renders the home view. */
+/** Map a request URL to a known view. Everything that isn't a known static view renders home. */
 function resolveRoute(url: string): string {
   const path = (url.split('?')[0] || '/').replace(/\/+$/, '') || '/'
-  return path === '/docs' ? '/docs' : '/'
+  if (path === '/docs') return '/docs'
+  if (path === '/workflows') return '/workflows'
+  return '/'
 }
 
 // Server entry: resolve the route, fetch the CMS-managed chrome (header/footer) in parallel, and —
