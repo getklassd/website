@@ -27,6 +27,7 @@ const ROUTES: Record<string, Seo> = {
     title: 'Docs — Klassd, the code-first headless CMS for .NET',
     description:
       'Build a headless CMS in C#: quickstart, content types and property types, editorial features, the delivery API, and how Klassd compares to Umbraco and Payload.',
+    image: '/og-docs.png',
   },
   '/workflows': {
     path: '/workflows',
