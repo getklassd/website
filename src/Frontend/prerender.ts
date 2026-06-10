@@ -23,10 +23,11 @@ function serialize(state: unknown): string {
 const template = readFileSync(resolve(clientDir, 'index.html'), 'utf-8')
 const { render } = (await import(resolve(root, 'dist/server/entry-server.js'))) as typeof import('./src/entry-server')
 
-/** Render one route and bake HTML + hydration state into the template. */
+/** Render one route and bake the per-route head, HTML and hydration state into the template. */
 async function bake(url: string): Promise<{ markup: string; hasPage: boolean }> {
-  const { html, state } = await render(url)
+  const { html, head, state } = await render(url)
   const markup = template
+    .replace('<!--ssr-head-->', head)
     .replace('<!--ssr-outlet-->', html)
     .replace('<!--ssr-state-->', serialize(state))
   return { markup, hasPage: !!state.page }

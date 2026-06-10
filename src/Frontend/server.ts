@@ -18,8 +18,9 @@ function serialize(state: unknown): string {
   return JSON.stringify(state ?? null).replace(/</g, '\\u003c')
 }
 
-function sendHtml(res: ServerResponse, template: string, html: string, state: unknown): void {
+function sendHtml(res: ServerResponse, template: string, html: string, head: string, state: unknown): void {
   const page = template
+    .replace('<!--ssr-head-->', head)
     .replace('<!--ssr-outlet-->', html)
     .replace('<!--ssr-state-->', serialize(state))
   res.statusCode = 200
@@ -41,8 +42,8 @@ async function devHandler(): Promise<Handler> {
         const url = req.url ?? '/'
         const template = await vite.transformIndexHtml(url, readFileSync(resolve(root, 'index.html'), 'utf-8'))
         const { render } = (await vite.ssrLoadModule('/src/entry-server.ts')) as typeof import('./src/entry-server')
-        const { html, state } = await render(url)
-        sendHtml(res, template, html, state)
+        const { html, head, state } = await render(url)
+        sendHtml(res, template, html, head, state)
       } catch (err) {
         vite.ssrFixStacktrace(err as Error)
         res.statusCode = 500
@@ -61,8 +62,8 @@ async function prodHandler(): Promise<Handler> {
   return (req, res) => {
     serveStatic(req, res, async () => {
       try {
-        const { html, state } = await render(req.url ?? '/')
-        sendHtml(res, template, html, state)
+        const { html, head, state } = await render(req.url ?? '/')
+        sendHtml(res, template, html, head, state)
       } catch (err) {
         res.statusCode = 500
         res.end((err as Error).stack)

@@ -1,6 +1,7 @@
 import { renderToString } from 'vue/server-renderer'
 import { createApp, type AppState } from './app'
 import { fetchHome, getSiteHeader, getSiteFooter } from './api'
+import { renderHead } from './seo'
 
 /** Map a request URL to a known view. Everything that isn't a known static view renders home. */
 function resolveRoute(url: string): string {
@@ -12,9 +13,9 @@ function resolveRoute(url: string): string {
 
 // Server entry: resolve the route, fetch the CMS-managed chrome (header/footer) in parallel, and —
 // for the home view only — the page content. Render to an HTML string and return it with the state
-// (serialized for hydration). Each fetcher swallows its own errors and returns null so the CMS being
-// unreachable can't fail SSR.
-export async function render(url: string): Promise<{ html: string; state: AppState }> {
+// (serialized for hydration) and the per-route <head> markup. Each fetcher swallows its own errors
+// and returns null so the CMS being unreachable can't fail SSR.
+export async function render(url: string): Promise<{ html: string; head: string; state: AppState }> {
   const route = resolveRoute(url)
   const [page, header, footer] = await Promise.all([
     route === '/' ? fetchHome('en').catch(() => null) : Promise.resolve(null),
@@ -25,5 +26,5 @@ export async function render(url: string): Promise<{ html: string; state: AppSta
   const state: AppState = { route, page, header, footer }
   const { app } = createApp(state)
   const html = await renderToString(app)
-  return { html, state }
+  return { html, head: renderHead(route), state }
 }
