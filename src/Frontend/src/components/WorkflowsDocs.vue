@@ -6,7 +6,8 @@
 const installCode = `dotnet add package Klassd.Workflows.Core --prerelease
 dotnet add package Klassd.Workflows.Storage.Postgres --prerelease   # durable store (or .Storage.MongoDb)
 dotnet add package Klassd.Workflows.Kubernetes --prerelease         # K8s executor (omit for local only)
-dotnet add package Klassd.Workflows.Artifacts.S3 --prerelease       # artifact store (or .Artifacts.Gcs)`
+dotnet add package Klassd.Workflows.Artifacts.S3 --prerelease       # artifact store (or .Artifacts.Gcs)
+dotnet add package Klassd.Workflows.Dashboard --prerelease          # the live UI (Razor Class Library)`
 
 const jobCode = `public sealed class MyJob : IJob
 {
@@ -23,6 +24,14 @@ const wireCode = `var workflows = builder.Services.AddKlassdWorkflowsCore();
 workflows.UsePostgres("Host=…;Database=…;Username=…;Password=…");  // or .UseMongo(...) / in-memory
 
 builder.Services.AddKubernetesExecutor(builder.Configuration);     // or AddLocalExecutor(workerDll)`
+
+const dashboardCode = `builder.Services.AddHttpContextAccessor();        // dashboard reads a theme cookie during SSR
+builder.Services.AddKlassdWorkflowsDashboard();   // the Blazor Interactive Server UI
+
+var app = builder.Build();
+app.UseAntiforgery();
+app.MapKlassdWorkflowsDashboard();                // static assets + component endpoints
+app.Run();`
 
 const scheduleCode = `scheduler.AddOrUpdateRecurring<MyJob>("nightly", "0 2 * * *");   // cron
 await scheduler.EnqueueAsync<MyJob>();                            // fire now`
@@ -55,7 +64,7 @@ const features: Feature[] = [
   { title: 'Runs in its own pod', body: 'Each execution is a batch/v1 Kubernetes Job (one pod), with per-job CPU/memory requests and limits resolved from attribute + config.' },
   { title: 'Same worker, local too', body: 'In dev the same worker runs as a child process — no cluster needed. Switch to Kubernetes with one config setting.' },
   { title: 'DAG workflows', body: 'Compose jobs into a graph: dependencies, fan-out (one pod per item), conditional nodes, retries, and artifact passing between nodes.' },
-  { title: 'Live dashboard', body: 'A Blazor Server UI shows the job list, per-job console + progress, recurring jobs, and an SVG view of each DAG run.' },
+  { title: 'Live dashboard', body: 'A Blazor Server UI — jobs catalog, run history, per-job console with inline progress bars, and an SVG view of each DAG run. Ships as a Razor Class Library you mount into your own host.' },
   { title: 'Durable & pluggable', body: 'Swap the job store (in-memory / PostgreSQL / MongoDB) and the artifact store (filesystem / S3 / GCS) — or ship your own adapter.' },
 ]
 
@@ -68,6 +77,7 @@ const packages: Pkg[] = [
   { id: 'Klassd.Workflows.Storage.MongoDb', purpose: 'Durable IJobStore on MongoDB. WorkflowsBuilder.UseMongo().' },
   { id: 'Klassd.Workflows.Artifacts.S3', purpose: 'IArtifactStore on S3 / S3-compatible stores (provider name "s3") for large payloads passed between nodes.' },
   { id: 'Klassd.Workflows.Artifacts.Gcs', purpose: 'IArtifactStore on Google Cloud Storage (provider name "gcs").' },
+  { id: 'Klassd.Workflows.Dashboard', purpose: 'The live Blazor (Interactive Server) UI as a Razor Class Library — jobs catalog, run history, per-job console with inline progress bars, and DAG run views. Mount with AddKlassdWorkflowsDashboard() / MapKlassdWorkflowsDashboard().' },
 ]
 </script>
 
@@ -122,7 +132,21 @@ const packages: Pkg[] = [
         <p><code>AddKlassdWorkflowsCore()</code> returns a builder you use to pick a durable store; pick an executor separately:</p>
         <pre class="docs-code"><code>{{ wireCode }}</code></pre>
 
-        <h3>3. Run</h3>
+        <h3>3. Mount the dashboard <span class="docs-opt">(optional)</span></h3>
+        <p>
+          The dashboard ships as a Razor Class Library — add the package and two calls to get the
+          live UI (jobs catalog, run history, per-job console with progress bars, DAG views) in your
+          own ASP.NET Core host:
+        </p>
+        <pre class="docs-code"><code>{{ dashboardCode }}</code></pre>
+        <p class="docs-note">
+          If your host has no <code>.razor</code> of its own, set
+          <code>&lt;RequiresAspNetWebAssets&gt;true&lt;/RequiresAspNetWebAssets&gt;</code> in its csproj
+          (otherwise <code>_framework/blazor.web.js</code> 404s). The
+          <code>samples/Klassd.Workflows.DashboardHost</code> project is a complete, runnable example.
+        </p>
+
+        <h3>4. Run</h3>
         <p>Enqueue jobs from code, or open the dashboard to start/stop them and watch live console output.</p>
       </section>
 
