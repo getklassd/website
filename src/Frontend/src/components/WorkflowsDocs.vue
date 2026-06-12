@@ -228,7 +228,9 @@ const packages: Pkg[] = [
         <pre class="docs-code"><code>{{ dagCode }}</code></pre>
         <ul class="docs-list">
           <li><strong>Dependencies</strong> — a node starts once all its dependencies are satisfied; a failed dependency skips dependents.</li>
-          <li><strong>Fan-out</strong> — read an upstream output as a JSON array and start one execution per element.</li>
+          <li><strong>Fan-out</strong> — read an upstream output as a JSON array and start one execution per element. <code>maxParallelism: n</code> caps how many run at once (0 = unlimited) so a big list doesn't spawn <em>n</em> pods at once.</li>
+          <li><strong>Inputs</strong> — bind an argument to an upstream output; for a service/container node's address use <code>BindServiceAddress</code> / <code>BindServiceIp</code> (like Argo's <code>tasks.x.ip</code>, without the magic key).</li>
+          <li><strong>File outputs</strong> — <code>WithFileOutput(name, path, default)</code> publishes a node output from a file the step writes (or the default if absent) — Argo's <code>valueFrom.path</code>, for both <code>IJob</code> and container nodes.</li>
           <li><strong>Conditions</strong> — run a node only when a predicate over upstream outputs holds (otherwise it's benignly omitted).</li>
           <li><strong>Retries</strong> — re-run a failed execution up to <em>n</em> times, per fan-out item.</li>
           <li><strong>Artifacts</strong> — large payloads pass through an <code>IArtifactStore</code>; a node saves an artifact and publishes the small reference downstream.</li>
