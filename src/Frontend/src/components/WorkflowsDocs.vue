@@ -56,6 +56,7 @@ const sections = [
   { id: 'workflows', label: 'Workflows (DAGs)' },
   { id: 'containers', label: 'Container jobs & services' },
   { id: 'executors', label: 'Executors' },
+  { id: 'pod-spec', label: 'Shaping the pod' },
   { id: 'storage', label: 'Storage & artifacts' },
   { id: 'auth', label: 'Dashboard auth' },
   { id: 'packages', label: 'Packages' },
@@ -80,6 +81,18 @@ containerJobs.Register(new ContainerJobDefinition
 await scheduler.EnqueueContainerAsync("legacy-importer",
     new ContainerSpec { Image = "ghcr.io/acme/go-importer:1.4" });`
 
+const podSpecCode = `new WorkflowBuilder("nightly")
+    .AddContainer("sql-proxy", proxyImage, c => c.AsService().ServicePort(5432).ReadyOnTcp(5432))
+    .Add<CleanupJob>("cleanup", n => n
+        .DependsOn("sql-proxy")
+        .BindInput("db_host", "sql-proxy", "address")
+        .WithInitContainer("migrate", "myorg/migrate:1", "--db", "$(db_host)")  // runs first
+        .WithEmptyDir("scratch").WithVolumeMount("scratch", "/scratch")          // shared volume
+        .WithEnvFromSecret("db-creds")                                           // ConfigMap/Secret -> env
+        .WithNodeSelector("pool", "batch")                                       // + tolerations / affinity
+        .WithSecurityContext(new() { RunAsNonRoot = true, ReadOnlyRootFilesystem = true }))
+    .Build();`
+
 const authCode = `builder.Services.AddKlassdWorkflowsAuth(o =>
 {
     o.SeedAdminEmail = config["Auth:SeedAdmin:Email"];        // first admin on a fresh deploy
@@ -99,6 +112,7 @@ const features: Feature[] = [
   { title: 'DAG workflows', body: 'Compose jobs into a graph: dependencies, fan-out (one pod per item), conditional nodes, retries, and artifact passing between nodes.' },
   { title: 'Run any container', body: 'Run an arbitrary container image as a standalone job or a DAG node — not just IJob classes. Bring legacy tools (a Go binary, anything) without porting them.' },
   { title: 'Service (daemon) nodes', body: 'Long-running sidecars like cloud-sql-proxy: a node comes up, forwards its address to dependents, stays up while they run, and is torn down when the workflow ends.' },
+  { title: 'Full control of the pod', body: 'Init containers, volumes, security contexts, resources, envFrom, and scheduling (nodeSelector / tolerations / affinity) — set per job, per node, or executor-wide. Pod annotations drive sidecar injectors like the Vault agent.' },
   { title: 'Live dashboard', body: 'A Blazor Server UI — jobs catalog, run history, per-job console with inline progress bars, and an SVG view of each DAG run. Ships as a Razor Class Library you mount into your own host.' },
   { title: 'Dashboard SSO & users', body: 'Email/password users plus OpenID Connect single sign-on, mirroring the Klassd CMS. Loopback (local dev / kubectl port-forward) is bypassed, so no login there.' },
   { title: 'Durable & pluggable', body: 'Swap the job store (in-memory / PostgreSQL / MongoDB / SQLite) and the artifact store (filesystem / S3 / GCS) — or ship your own adapter.' },
@@ -114,6 +128,7 @@ const packages: Pkg[] = [
   { id: 'Klassd.Workflows.Storage.Sqlite', purpose: 'Durable IJobStore (+ dashboard user store) in a single SQLite file — zero infrastructure for single-node deployments. WorkflowsBuilder.UseSqlite().' },
   { id: 'Klassd.Workflows.Artifacts.S3', purpose: 'IArtifactStore on S3 / S3-compatible stores (provider name "s3") for large payloads passed between nodes.' },
   { id: 'Klassd.Workflows.Artifacts.Gcs', purpose: 'IArtifactStore on Google Cloud Storage (provider name "gcs").' },
+  { id: 'Klassd.Workflows.Worker', purpose: 'The worker host. WorkerHost.RunAsync() loads an IJob by name and runs it against the stdout protocol — reference it from a one-line exe plus your job assemblies to build your own worker image (or layer DLLs onto the base image). Optional IWorkerStartup adds DI.' },
   { id: 'Klassd.Workflows.Dashboard', purpose: 'The live Blazor (Interactive Server) UI as a Razor Class Library — jobs catalog, run history, per-job console with inline progress bars, and DAG run views. Mount with AddKlassdWorkflowsDashboard() / MapKlassdWorkflowsDashboard().' },
   { id: 'Klassd.Workflows.Auth', purpose: 'Optional dashboard authentication: email/password Users admin + cookie sign-in, with loopback bypass for local/port-forward. AddKlassdWorkflowsAuth().' },
   { id: 'Klassd.Workflows.Auth.OpenIdConnect', purpose: 'OpenID Connect single sign-on for the dashboard, built on the Auth seam (links/provisions a user by email). AddKlassdWorkflowsOpenIdConnect().' },
@@ -254,6 +269,33 @@ const packages: Pkg[] = [
         <ul class="docs-list">
           <li><strong>Local</strong> — <code>AddLocalExecutor(...)</code> launches the worker as a child process per job. No cluster required; ideal for dev.</li>
           <li><strong>Kubernetes</strong> — <code>AddKubernetesExecutor(...)</code> creates a <code>batch/v1</code> Job (one pod, <code>restartPolicy: Never</code>) per execution, tails its logs, and cleans up via <code>ttlSecondsAfterFinished</code>. Stopping a job deletes the Job; SIGTERM cancels the worker's token.</li>
+        </ul>
+        <p class="docs-note">
+          The worker ships as a package: reference <code>Klassd.Workflows.Worker</code> from a one-line
+          exe (<code>return await WorkerHost.RunAsync(args);</code>) plus your job assemblies to build
+          your own image, or layer your job DLLs onto the published base image. Implement
+          <code>IWorkerStartup</code> for constructor-injected jobs (config from
+          <code>appsettings</code> + <code>/secrets</code> + env).
+        </p>
+      </section>
+
+      <!-- Pod spec -->
+      <section id="pod-spec" class="docs-section">
+        <h2>Shaping the pod</h2>
+        <p>
+          On the Kubernetes executor you control the pod each job runs in, at three scopes that
+          combine: <strong>executor-wide</strong> (options), <strong>per DAG node</strong>, and
+          <strong>per container/job</strong>.
+        </p>
+        <pre class="docs-code"><code>{{ podSpecCode }}</code></pre>
+        <ul class="docs-list">
+          <li><strong>Init containers</strong> — run to completion before the main container (migrations, pre-flight, seeding a shared volume).</li>
+          <li><strong>Volumes &amp; mounts</strong> — <code>emptyDir</code> / secret / configMap / PVC / hostPath, mounted into the main and init containers.</li>
+          <li><strong>Security contexts</strong> — pod-level (<code>runAsUser</code>, <code>fsGroup</code>, seccomp…) and per-container (<code>readOnlyRootFilesystem</code>, drop capabilities…).</li>
+          <li><strong>Resources</strong> — CPU/memory requests &amp; limits on container jobs and init containers, overlaid on the executor default.</li>
+          <li><strong>envFrom</strong> — import a ConfigMap or Secret as environment variables.</li>
+          <li><strong>Scheduling</strong> — <code>nodeSelector</code>, tolerations, and affinity (node + pod (anti-)affinity).</li>
+          <li><strong>Annotations &amp; labels</strong> — stamped on every pod; the seam for sidecar injectors such as the Vault agent.</li>
         </ul>
       </section>
 
