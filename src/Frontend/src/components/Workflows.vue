@@ -12,8 +12,11 @@ const features: Feature[] = [
   { title: 'Runs in its own pod', body: 'Each execution is a batch/v1 Kubernetes Job (one pod), with per-job CPU/memory requests and limits.' },
   { title: 'Same worker, local too', body: 'In dev the same worker runs as a child process — no cluster needed. Switch to Kubernetes with one config setting.' },
   { title: 'DAG workflows', body: 'Compose jobs into a graph: dependencies, fan-out (one pod per item), conditional nodes, retries, and artifact passing.' },
+  { title: 'Run any container', body: 'Run an arbitrary container image as a job or DAG node — not just IJob classes. Bring legacy tools (a Go binary, anything) without porting them.' },
+  { title: 'Service (daemon) nodes', body: 'Long-running sidecars like cloud-sql-proxy: a node comes up, forwards its address to dependents, stays up while they run, and is torn down when the workflow ends.' },
   { title: 'Live dashboard', body: 'A Blazor dashboard shows the job list, per-job console + progress, recurring jobs, and an SVG view of each DAG run.' },
-  { title: 'Durable & pluggable', body: 'Swap the job store (in-memory / Postgres / MongoDB) and the artifact store (filesystem / S3 / GCS) — or ship your own.' },
+  { title: 'Dashboard SSO & users', body: 'Email/password users plus OpenID Connect single sign-on. Loopback (local dev / kubectl port-forward) is bypassed, so no login there.' },
+  { title: 'Durable & pluggable', body: 'Swap the job store (in-memory / Postgres / MongoDB / SQLite) and the artifact store (filesystem / S3 / GCS) — or ship your own.' },
 ]
 
 const jobCode = `public sealed class MyJob : IJob
