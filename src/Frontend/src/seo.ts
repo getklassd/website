@@ -43,6 +43,18 @@ const ROUTES: Record<string, Seo> = {
       'Klassd.Workflows docs: define jobs in C#, schedule with cron, compose DAG workflows (fan-out, conditions, retries, artifacts), pick local or Kubernetes executors and a durable store.',
     image: '/og-workflows.png',
   },
+  '/auth': {
+    path: '/auth',
+    title: 'Klassd.Auth — self-hostable authentication for .NET',
+    description:
+      'Klassd.Auth is a code-first authentication core for .NET: email/password, rotating sessions, social login & SSO (OIDC / Entra ID), MFA/TOTP, email verification and per-user metadata, with SQLite/Postgres/MongoDB adapters.',
+  },
+  '/auth/docs': {
+    path: '/auth/docs',
+    title: 'Docs — Klassd.Auth, self-hostable auth for .NET',
+    description:
+      'Klassd.Auth docs: email/password & rotating sessions, cookie sign-in for Blazor, external login (OIDC / Entra ID / Google / GitHub), MFA/TOTP, email verification, token signing (HS256/RS256/JWKS) and storage adapters.',
+  },
 }
 
 /** Resolve a route to its SEO entry, falling back to the home page. */

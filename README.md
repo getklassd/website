@@ -1,6 +1,8 @@
 # getklassd.com
 
-The marketing site for [Klassd](https://github.com/getklassd/Klassd), built the way a headless CMS
+The marketing site for the Klassd suite — [Klassd CMS](https://github.com/getklassd/Klassd)
+(`/`, `/docs`), [Klassd.Workflows](https://github.com/getklassd/Klassd.Workflows) (`/workflows`),
+and [Klassd.Auth](https://github.com/getklassd/Klassd.Auth) (`/auth`) — built the way a headless CMS
 is meant to be used: the CMS runs on its own and exposes a JSON delivery API, and a separate
 **Vue 3 SSR** frontend consumes it.
 

@@ -9,6 +9,8 @@ function resolveRoute(url: string): string {
   if (path === '/docs') return '/docs'
   if (path === '/workflows/docs') return '/workflows/docs'
   if (path === '/workflows') return '/workflows'
+  if (path === '/auth/docs') return '/auth/docs'
+  if (path === '/auth') return '/auth'
   return '/'
 }
 

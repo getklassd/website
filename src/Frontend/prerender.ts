@@ -54,8 +54,18 @@ const workflowsDocs = await bake('/workflows/docs')
 mkdirSync(resolve(clientDir, 'workflows/docs'), { recursive: true })
 writeFileSync(resolve(clientDir, 'workflows/docs/index.html'), workflowsDocs.markup)
 
+// Auth landing → /auth/index.html (static, no CMS content required).
+const auth = await bake('/auth')
+mkdirSync(resolve(clientDir, 'auth'), { recursive: true })
+writeFileSync(resolve(clientDir, 'auth/index.html'), auth.markup)
+
+// Auth docs → /auth/docs/index.html (static, no CMS content required).
+const authDocs = await bake('/auth/docs')
+mkdirSync(resolve(clientDir, 'auth/docs'), { recursive: true })
+writeFileSync(resolve(clientDir, 'auth/docs/index.html'), authDocs.markup)
+
 if (!home.hasPage) {
   console.error('⚠ Prerendered with NO page content — is the CMS reachable at CMS_BASE?')
   process.exit(1)
 }
-console.log('✓ Prerendered index.html (+ 404.html), docs/, workflows/ and workflows/docs/ with baked-in content')
+console.log('✓ Prerendered index.html (+ 404.html), docs/, workflows/, workflows/docs/, auth/ and auth/docs/ with baked-in content')

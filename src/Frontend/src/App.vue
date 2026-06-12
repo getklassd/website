@@ -9,6 +9,8 @@ import CodeShowcase from './components/CodeShowcase.vue'
 import Docs from './components/Docs.vue'
 import Workflows from './components/Workflows.vue'
 import WorkflowsDocs from './components/WorkflowsDocs.vue'
+import Auth from './components/Auth.vue'
+import AuthDocs from './components/AuthDocs.vue'
 
 // Provided by app.ts — fetched during SSR, reused on hydration (no client refetch).
 const page = inject<Page | null>('initialPage', null)
@@ -16,6 +18,8 @@ const route = inject<string>('route', '/')
 const isDocs = computed(() => route === '/docs')
 const isWorkflows = computed(() => route === '/workflows')
 const isWorkflowsDocs = computed(() => route === '/workflows/docs')
+const isAuth = computed(() => route === '/auth')
+const isAuthDocs = computed(() => route === '/auth/docs')
 
 function features(p: Page): Block[] {
   return p.blockAreas['features'] ?? []
@@ -31,6 +35,10 @@ function features(p: Page): Block[] {
       <WorkflowsDocs v-else-if="isWorkflowsDocs" />
 
       <Workflows v-else-if="isWorkflows" />
+
+      <AuthDocs v-else-if="isAuthDocs" />
+
+      <Auth v-else-if="isAuth" />
 
       <template v-else-if="page">
         <Hero
