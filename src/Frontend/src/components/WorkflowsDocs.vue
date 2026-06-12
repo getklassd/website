@@ -68,8 +68,7 @@ const containerNodeCode = `registry.Register(new WorkflowBuilder("cloud-sql-inte
         .ServicePort(5432).ReadyOnTcp(5432)
         .AsService())                                   // long-running; torn down at the end
     .Add<IntegrationJob>("integration", n => n
-        .DependsOn("sql-proxy")
-        .BindInput("db_host", "sql-proxy", "address"))  // <podIP>:5432 forwarded to the job
+        .BindServiceAddress("db_host", "sql-proxy"))    // {podIP}:5432 forwarded; also adds the dependency
     .Build());`
 
 const containerJobCode = `// Run an existing image as a standalone job — no IJob port needed.
@@ -84,8 +83,7 @@ await scheduler.EnqueueContainerAsync("legacy-importer",
 const podSpecCode = `new WorkflowBuilder("nightly")
     .AddContainer("sql-proxy", proxyImage, c => c.AsService().ServicePort(5432).ReadyOnTcp(5432))
     .Add<CleanupJob>("cleanup", n => n
-        .DependsOn("sql-proxy")
-        .BindInput("db_host", "sql-proxy", "address")
+        .BindServiceAddress("db_host", "sql-proxy")     // also adds the dependency
         .WithInitContainer("migrate", "myorg/migrate:1", "--db", "$(db_host)")  // runs first
         .WithEmptyDir("scratch").WithVolumeMount("scratch", "/scratch")          // shared volume
         .WithEnvFromSecret("db-creds")                                           // ConfigMap/Secret -> env
