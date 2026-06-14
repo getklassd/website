@@ -70,6 +70,11 @@ function features(p: Page): Block[] {
         />
 
         <section class="compare-teaser">
+          <p>Want the full picture — quickstart, content &amp; property types, the delivery API and the package list?</p>
+          <a class="cta" href="/cms/docs">Read the docs →</a>
+        </section>
+
+        <section class="compare-teaser">
           <p>Evaluating headless CMSs? See how Klassd's code-first approach compares to Umbraco and Payload.</p>
           <a class="cta" href="/cms/docs#comparison">Compare →</a>
         </section>
