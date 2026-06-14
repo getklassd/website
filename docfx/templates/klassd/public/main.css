@@ -1,6 +1,6 @@
 /* Klassd brand tint over the DocFX "modern" template.
    The modern template is Bootstrap-based and auto-handles light/dark; we only nudge the
-   accent to Klassd coral so the API reference reads as the same product as /docs. */
+   accent to Klassd coral so the API reference reads as the same product as /cms/docs. */
 :root,
 :root[data-bs-theme="light"],
 :root[data-bs-theme="dark"] {

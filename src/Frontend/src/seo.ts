@@ -18,12 +18,18 @@ export interface Seo {
 const ROUTES: Record<string, Seo> = {
   '/': {
     path: '/',
+    title: 'getklassd.com — code-first building blocks for .NET',
+    description:
+      'getklassd.com is home to Klassd — a family of code-first, self-hostable libraries for .NET: a headless CMS, a background-job & workflow engine, and an authentication core.',
+  },
+  '/cms': {
+    path: '/cms',
     title: 'Klassd — code-first headless CMS for .NET',
     description:
       'Klassd is a code-first, headless CMS for .NET. Define your content model as C# classes and deliver it to any frontend over a clean JSON API.',
   },
-  '/docs': {
-    path: '/docs',
+  '/cms/docs': {
+    path: '/cms/docs',
     title: 'Docs — Klassd, the code-first headless CMS for .NET',
     description:
       'Build a headless CMS in C#: quickstart, content types and property types, editorial features, the delivery API, and how Klassd compares to Umbraco and Payload.',

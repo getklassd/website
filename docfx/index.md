@@ -4,7 +4,7 @@ Auto-generated reference for the public Klassd API, extracted from the source XM
 documentation comments.
 
 > [!TIP]
-> Looking for **guides and a quickstart**? See the [main documentation](/docs). This section
+> Looking for **guides and a quickstart**? See the [main documentation](/cms/docs). This section
 > is the type-by-type API reference.
 
 ## Where to start

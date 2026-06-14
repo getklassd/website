@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Static documentation view. Content lives here (not in the CMS) so the docs are versioned with
-// the framework and render with zero CMS dependency — they prerender into /docs/index.html.
+// the framework and render with zero CMS dependency — they prerender into /cms/docs/index.html.
 
 interface FieldType {
   alias: string
@@ -152,7 +152,7 @@ const comparison: CompareRow[] = [
       <nav class="docs-toc" aria-label="Docs sections">
         <p class="docs-toc-title">Documentation</p>
         <a v-for="s in sections" :key="s.id" :href="`#${s.id}`" class="docs-toc-link">{{ s.label }}</a>
-        <a href="/docs/api/" class="docs-toc-link docs-toc-api">API reference →</a>
+        <a href="/cms/docs/api/" class="docs-toc-link docs-toc-api">API reference →</a>
       </nav>
     </aside>
 
@@ -167,7 +167,7 @@ const comparison: CompareRow[] = [
         </p>
         <p class="docs-lede-meta">
           Prefer type-by-type detail? Browse the
-          <a href="/docs/api/">generated API reference →</a>
+          <a href="/cms/docs/api/">generated API reference →</a>
         </p>
       </header>
 
@@ -322,7 +322,7 @@ const comparison: CompareRow[] = [
           time-travels delivery when enabled. A <code>/graphql</code> endpoint is available via the opt-in GraphQL package.
         </p>
         <p class="docs-cta-row">
-          <a class="cta" href="/docs/api/">API reference</a>
+          <a class="cta" href="/cms/docs/api/">API reference</a>
           <a class="docs-ghost" href="https://github.com/getklassd/Klassd">View on GitHub</a>
           <a class="docs-ghost" href="https://www.nuget.org/profiles/getklassd">All NuGet packages</a>
         </p>

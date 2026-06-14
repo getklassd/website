@@ -95,7 +95,46 @@ main { min-height: 100vh; }
 .feature h3 { margin: 0 0 10px; font-size: 18px; }
 .feature p { margin: 0; color: var(--muted); line-height: 1.6; }
 
-/* Comparison teaser — a quiet band linking to the full table in /docs */
+/* Product grid — the getklassd.com umbrella landing's CMS / Workflows / Auth cards (links) */
+.products {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 24px 96px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+@media (max-width: 920px) {
+  .products { grid-template-columns: 1fr; }
+}
+.product-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  text-decoration: none;
+  color: var(--text);
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.product-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 12px 34px rgba(var(--accent-rgb), 0.18);
+}
+.product-tagline {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.product-card h3 { margin: 0 0 12px; font-size: 22px; letter-spacing: -0.01em; }
+.product-card p { margin: 0 0 20px; color: var(--muted); line-height: 1.6; }
+.product-cta { margin-top: auto; font-weight: 600; color: var(--accent); }
+
+/* Comparison teaser — a quiet band linking to the full table in /cms/docs */
 .compare-teaser {
   max-width: 1200px;
   margin: 0 auto;
@@ -243,7 +282,7 @@ main { min-height: 100vh; }
 .footer-credit { display: block; margin-top: 6px; color: var(--muted); }
 .footer-heart { color: var(--accent); }
 
-/* ── Docs (/docs) ─────────────────────────────────────────────────────────── */
+/* ── Docs (/cms/docs) ─────────────────────────────────────────────────────── */
 .docs {
   max-width: 1200px;
   margin: 0 auto;

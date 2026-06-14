@@ -6,6 +6,7 @@ import Footer from './components/Footer.vue'
 import Hero from './components/Hero.vue'
 import FeatureCard from './components/FeatureCard.vue'
 import CodeShowcase from './components/CodeShowcase.vue'
+import GetKlassd from './components/GetKlassd.vue'
 import Docs from './components/Docs.vue'
 import Workflows from './components/Workflows.vue'
 import WorkflowsDocs from './components/WorkflowsDocs.vue'
@@ -15,7 +16,9 @@ import AuthDocs from './components/AuthDocs.vue'
 // Provided by app.ts — fetched during SSR, reused on hydration (no client refetch).
 const page = inject<Page | null>('initialPage', null)
 const route = inject<string>('route', '/')
-const isDocs = computed(() => route === '/docs')
+const isHome = computed(() => route === '/')
+const isCms = computed(() => route === '/cms')
+const isDocs = computed(() => route === '/cms/docs')
 const isWorkflows = computed(() => route === '/workflows')
 const isWorkflowsDocs = computed(() => route === '/workflows/docs')
 const isAuth = computed(() => route === '/auth')
@@ -30,7 +33,9 @@ function features(p: Page): Block[] {
   <div class="site">
     <Header />
     <main>
-      <Docs v-if="isDocs" />
+      <GetKlassd v-if="isHome" />
+
+      <Docs v-else-if="isDocs" />
 
       <WorkflowsDocs v-else-if="isWorkflowsDocs" />
 
@@ -40,7 +45,7 @@ function features(p: Page): Block[] {
 
       <Auth v-else-if="isAuth" />
 
-      <template v-else-if="page">
+      <template v-else-if="isCms && page">
         <Hero
           :title="page.data.heroTitle"
           :subtitle="page.data.heroSubtitle"
@@ -66,7 +71,7 @@ function features(p: Page): Block[] {
 
         <section class="compare-teaser">
           <p>Evaluating headless CMSs? See how Klassd's code-first approach compares to Umbraco and Payload.</p>
-          <a class="cta" href="/docs#comparison">Compare →</a>
+          <a class="cta" href="/cms/docs#comparison">Compare →</a>
         </section>
       </template>
 

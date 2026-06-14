@@ -34,15 +34,21 @@ async function bake(url: string): Promise<{ markup: string; hasPage: boolean }> 
 }
 
 // Home → index.html (+ 404.html SPA fallback for unknown paths / refreshes).
+// The home view is the getklassd.com umbrella landing (static, no CMS content).
 const home = await bake('/')
 const out = resolve(clientDir, 'index.html')
 writeFileSync(out, home.markup)
 copyFileSync(out, resolve(clientDir, '404.html'))
 
-// Docs → /docs/index.html (static, no CMS content required).
-const docs = await bake('/docs')
-mkdirSync(resolve(clientDir, 'docs'), { recursive: true })
-writeFileSync(resolve(clientDir, 'docs/index.html'), docs.markup)
+// CMS landing → /cms/index.html (CMS-driven content, baked from CMS_BASE at build time).
+const cms = await bake('/cms')
+mkdirSync(resolve(clientDir, 'cms'), { recursive: true })
+writeFileSync(resolve(clientDir, 'cms/index.html'), cms.markup)
+
+// CMS docs → /cms/docs/index.html (static, no CMS content required).
+const docs = await bake('/cms/docs')
+mkdirSync(resolve(clientDir, 'cms/docs'), { recursive: true })
+writeFileSync(resolve(clientDir, 'cms/docs/index.html'), docs.markup)
 
 // Workflows landing → /workflows/index.html (static, no CMS content required).
 const workflows = await bake('/workflows')
@@ -64,8 +70,8 @@ const authDocs = await bake('/auth/docs')
 mkdirSync(resolve(clientDir, 'auth/docs'), { recursive: true })
 writeFileSync(resolve(clientDir, 'auth/docs/index.html'), authDocs.markup)
 
-if (!home.hasPage) {
-  console.error('⚠ Prerendered with NO page content — is the CMS reachable at CMS_BASE?')
+if (!cms.hasPage) {
+  console.error('⚠ Prerendered /cms with NO page content — is the CMS reachable at CMS_BASE?')
   process.exit(1)
 }
-console.log('✓ Prerendered index.html (+ 404.html), docs/, workflows/, workflows/docs/, auth/ and auth/docs/ with baked-in content')
+console.log('✓ Prerendered index.html (+ 404.html), cms/, cms/docs/, workflows/, workflows/docs/, auth/ and auth/docs/ with baked-in content')

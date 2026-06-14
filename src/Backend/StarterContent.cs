@@ -82,8 +82,8 @@ public static class StarterContent
             new Dictionary<string, string>
             {
                 ["logoText"] = "Klassd",
-                // Primary nav: on-site docs, the Workflows + Auth package pages, + a link out to the GitHub org.
-                ["navLinks"] = """[{"label":"Docs","url":"/docs"},{"label":"Workflows","url":"/workflows"},{"label":"Auth","url":"/auth"},{"label":"GitHub","url":"https://github.com/getklassd"}]""",
+                // Primary nav: the CMS product page, the Workflows + Auth package pages, + a link out to the GitHub org.
+                ["navLinks"] = """[{"label":"CMS","url":"/cms"},{"label":"Workflows","url":"/workflows"},{"label":"Auth","url":"/auth"},{"label":"GitHub","url":"https://github.com/getklassd"}]""",
                 ["ctaText"] = "GitHub",
                 ["ctaUrl"] = "https://github.com/getklassd",
             },
@@ -102,7 +102,7 @@ public static class StarterContent
                     new BlockData(nameof(LinkListBlock), new()
                     {
                         ["heading"] = "Project",
-                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd"},{"label":"Docs","url":"/docs"},{"label":"Workflows","url":"/workflows"},{"label":"Auth","url":"/auth"},{"label":"NuGet","url":"https://www.nuget.org/profiles/getklassd"}]""",
+                        ["links"] = """[{"label":"GitHub","url":"https://github.com/getklassd"},{"label":"CMS","url":"/cms"},{"label":"Workflows","url":"/workflows"},{"label":"Auth","url":"/auth"},{"label":"NuGet","url":"https://www.nuget.org/profiles/getklassd"}]""",
                     }),
                 ],
             });

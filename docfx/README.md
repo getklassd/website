@@ -1,8 +1,8 @@
 # API reference (DocFX)
 
-Generates the **type-by-type API reference** at `/docs/api` from the Klassd source XML
+Generates the **type-by-type API reference** at `/cms/docs/api` from the Klassd source XML
 documentation comments. This is the API half of the hybrid docs setup — the curated guides
-and quickstart live in the Vue app (`src/Frontend/src/components/Docs.vue`, served at `/docs`).
+and quickstart live in the Vue app (`src/Frontend/src/components/Docs.vue`, served at `/cms/docs`).
 
 ## Build
 
@@ -12,7 +12,7 @@ dotnet tool restore                 # installs DocFX (pinned in .config/dotnet-t
 dotnet docfx docfx/docfx.json
 ```
 
-Output lands in `src/Frontend/dist/client/docs/api/`, so it ships inside the GitHub Pages
+Output lands in `src/Frontend/dist/client/cms/docs/api/`, so it ships inside the GitHub Pages
 deploy artifact alongside the prerendered Vue site.
 
 > **Ordering matters.** `vite build` empties `dist/client`, so DocFX must run **after**
@@ -29,5 +29,5 @@ the submodule is pinned to — bump the submodule to surface newly added API.
 ## Theme
 
 Uses the built-in `default` + `modern` templates plus `templates/klassd` (a thin CSS overlay
-in `public/main.css`) to tint the accent to Klassd coral and link the brand back to `/docs`.
+in `public/main.css`) to tint the accent to Klassd coral and link the brand back to `/cms/docs`.
 Generated metadata (`api/`) and any local `_site/` are git-ignored.

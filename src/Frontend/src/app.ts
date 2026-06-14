@@ -4,7 +4,7 @@ import type { Page, SiteHeaderData, SiteFooterData } from './api'
 import './style.css'
 
 // The full SSR state: page content plus the CMS-managed site chrome (header/footer).
-// `route` is the resolved view (e.g. '/' or '/docs') — baked in during prerender so the
+// `route` is the resolved view (e.g. '/' or '/cms/docs') — baked in during prerender so the
 // hydrated client renders the same view the server did (no client router needed).
 export interface AppState {
   route: string

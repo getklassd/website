@@ -23,17 +23,17 @@
       { "files": [ "api/**.yml", "api/index.md" ] },
       { "files": [ "*.md", "toc.yml" ] }
     ],
-    "output": "../src/Frontend/dist/client/docs/api",
+    "output": "../src/Frontend/dist/client/cms/docs/api",
     "template": [ "default", "modern", "templates/klassd" ],
     "globalMetadata": {
       "_appName": "Klassd",
       "_appTitle": "Klassd",
-      "_appFooter": "Klassd — a code-first, headless CMS for .NET. <a href=\"/docs\">Guides</a> · <a href=\"https://github.com/getklassd/Klassd\">GitHub</a>",
-      "_appLogoUrl": "/docs",
+      "_appFooter": "Klassd — a code-first, headless CMS for .NET. <a href=\"/cms/docs\">Guides</a> · <a href=\"https://github.com/getklassd/Klassd\">GitHub</a>",
+      "_appLogoUrl": "/cms/docs",
       "_enableSearch": true,
       "_disableContribution": true,
       "_disableNextArticle": true
     },
-    "sitemap": { "baseUrl": "https://getklassd.com/docs/api/" }
+    "sitemap": { "baseUrl": "https://getklassd.com/cms/docs/api/" }
   }
 }
