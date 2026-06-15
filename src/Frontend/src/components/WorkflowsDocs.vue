@@ -49,43 +49,38 @@ const dagCode = `registry.Register(new WorkflowBuilder("catalog-integration")
         .BindInput("dataset_ref", "data-proxy", "dataset_ref"))          // reads the artifact
     .Build());`
 
-const jobConfigureCode = `public sealed class ConfiguredGreetingJob(GreetingOptions options) : IJob
-{
-    // Convention hook — discovered by name/signature, no interface to implement.
-    // Called on every execution (workflow nodes included), before the job is constructed.
-    // A *static* hook needs no parameterless ctor, so prefer it when the hook needs no instance.
-    public static void Configure(IServiceCollection services, IConfiguration configuration)
-    {
-        var salutation = configuration["Greeting:Salutation"] ?? "Hello";
-        services.AddSingleton(new GreetingOptions { Salutation = salutation });
-    }
-
-    public Task RunAsync(IJobContext context)
-    {
-        var name = context.Arguments.GetValueOrDefault("name", "world");
-        context.Log($"{options.Salutation}, {name}!");      // options injected via ActivatorUtilities
-        return Task.CompletedTask;
-    }
-}
-
-// Need an *instance* hook (it reads instance state)? Then the job also needs a parameterless ctor,
-// so the worker can create it to call Configure — otherwise the hook is skipped (with a log line).`
-
-const workerStartupCode = `// One IWorkerStartup, discovered automatically — services shared by EVERY job in the image.
-public sealed class WorkerStartup : IWorkerStartup
-{
-    public void Configure(IServiceCollection services, IConfiguration configuration)
+const workerCode = `// Your worker exe (Program.cs): register the jobs it can run + the services they
+// take as constructor dependencies, then run the single job the scheduler dispatched.
+return await WorkerHost.CreateBuilder(args)
+    .ConfigureServices((services, config) =>
     {
         services.AddHttpClient();
-        services.AddSingleton(new CatalogOptions { BaseUrl = configuration["Catalog:BaseUrl"]! });
-    }
+        services.AddSingleton(new CatalogOptions { BaseUrl = config["Catalog:BaseUrl"]! });
+        services.AddSingleton(new GreetingOptions { Salutation = config["Greeting:Salutation"] ?? "Hello" });
+    })
+    .RegisterJobs(MyJobs.Register)                          // the shared registration, below
+    .AddArtifactProvider(new GcsArtifactStoreProvider())    // backends picked by name; "file" is built in
+    .RunAsync();`
+
+const jobsRegistrationCode = `// One shared registration, referenced by BOTH the worker exe and the dashboard host,
+// so the two agree on the dispatch keys. The default key is the job's full type name —
+// matching what EnqueueAsync<T>(), recurring jobs and workflow nodes already emit.
+public static class MyJobs
+{
+    public static void Register(JobRegistrationBuilder j) => j
+        .Add<SyncCatalogJob>()                              // key = full type name
+        .Add<ConfiguredGreetingJob>("greeting")             // explicit key
+        .Add("report", sp => new ReportJob(sp.GetRequiredService<IFoo>())); // explicit factory
 }
 
-// Jobs just declare what they need; they're created with ActivatorUtilities.
+// Jobs just declare what they need; constructed via ActivatorUtilities (or your factory).
 public sealed class SyncCatalogJob(IHttpClientFactory http, CatalogOptions opts) : IJob
 {
     public async Task RunAsync(IJobContext ctx) { /* use http, opts */ }
-}`
+}
+
+// The dashboard host registers the same jobs so the catalog + workflow validation match:
+//   builder.Services.AddKlassdWorkflowsCore().AddJobs(MyJobs.Register);`
 
 const sections = [
   { id: 'overview', label: 'Overview' },
@@ -165,7 +160,7 @@ const packages: Pkg[] = [
   { id: 'Klassd.Workflows.Storage.Sqlite', purpose: 'Durable IJobStore (+ dashboard user store) in a single SQLite file — zero infrastructure for single-node deployments. WorkflowsBuilder.UseSqlite().' },
   { id: 'Klassd.Workflows.Artifacts.S3', purpose: 'IArtifactStore on S3 / S3-compatible stores (provider name "s3") for large payloads passed between nodes.' },
   { id: 'Klassd.Workflows.Artifacts.Gcs', purpose: 'IArtifactStore on Google Cloud Storage (provider name "gcs").' },
-  { id: 'Klassd.Workflows.Worker', purpose: 'The worker host. WorkerHost.RunAsync() loads an IJob by name and runs it against the stdout protocol — reference it from a one-line exe plus your job assemblies to build your own worker image (or layer DLLs onto the base image). Optional IWorkerStartup adds DI for every job; a job can also define Configure(IServiceCollection, IConfiguration) to register its own per-execution dependencies.' },
+  { id: 'Klassd.Workflows.Worker', purpose: 'The worker host. WorkerHost.CreateBuilder(args).RegisterJobs(…).RunAsync() constructs the dispatched IJob from the registry and runs it against the stdout protocol — reference it from a thin exe, register the jobs it can run, and publish it as your own worker image. ConfigureServices supplies constructor dependencies (ActivatorUtilities) or use an explicit factory.' },
   { id: 'Klassd.Workflows.Dashboard', purpose: 'The live Blazor (Interactive Server) UI as a Razor Class Library — jobs catalog, run history, per-job console with inline progress bars, and DAG run views. Mount with AddKlassdWorkflowsDashboard() / MapKlassdWorkflowsDashboard().' },
   { id: 'Klassd.Workflows.Auth', purpose: 'Optional dashboard authentication: email/password Users admin + cookie sign-in, with loopback bypass for local/port-forward. AddKlassdWorkflowsAuth().' },
   { id: 'Klassd.Workflows.Auth.OpenIdConnect', purpose: 'OpenID Connect single sign-on for the dashboard, built on the Auth seam (links/provisions a user by email). AddKlassdWorkflowsOpenIdConnect().' },
@@ -310,13 +305,12 @@ const packages: Pkg[] = [
           <li><strong>Kubernetes</strong> — <code>AddKubernetesExecutor(...)</code> creates a <code>batch/v1</code> Job (one pod, <code>restartPolicy: Never</code>) per execution, tails its logs, and cleans up via <code>ttlSecondsAfterFinished</code>. Stopping a job deletes the Job; SIGTERM cancels the worker's token.</li>
         </ul>
         <p class="docs-note">
-          The worker ships as a package: reference <code>Klassd.Workflows.Worker</code> from a one-line
-          exe (<code>return await WorkerHost.RunAsync(args);</code>) plus your job assemblies to build
-          your own image, or layer your job DLLs onto the published base image. Jobs are
-          constructor-injected: implement <code>IWorkerStartup</code> for DI shared by every job, or
-          give a job a <code>Configure(IServiceCollection, IConfiguration)</code> method to register
-          its own per-execution dependencies (config from <code>appsettings</code> +
-          <code>/secrets</code> + env).
+          The worker ships as a package: reference <code>Klassd.Workflows.Worker</code> from a thin exe,
+          register the jobs it can run with
+          <code>WorkerHost.CreateBuilder(args).RegisterJobs(…)</code>, and publish it as your own
+          worker image. Jobs are constructor-injected via <code>ConfigureServices</code> (config from
+          <code>appsettings</code> + <code>/secrets</code> + env) — see
+          <a href="#di">Dependency injection</a>.
         </p>
       </section>
 
@@ -324,34 +318,27 @@ const packages: Pkg[] = [
       <section id="di" class="docs-section">
         <h2>Dependency injection</h2>
         <p>
-          Jobs are created with <code>ActivatorUtilities</code>, so they can take constructor
-          dependencies. Configuration is composed once per execution from
+          Register the jobs a worker can run with <code>RegisterJobs</code>, and the services they
+          take through their constructors with <code>ConfigureServices</code>. Jobs are constructed
+          with <code>ActivatorUtilities</code> (or an explicit factory), so the registered services
+          flow into the constructor. Configuration is composed from
           <code>appsettings[.{ENV}].json</code> → every <code>/secrets/*.json</code> (the Vault-agent
-          drop dir) → environment variables (last wins), and is itself injectable. There are two ways
-          to register services — they compose, and a job that needs nothing keeps working unchanged.
+          drop dir) → environment variables (last wins), and is itself injectable.
         </p>
+        <pre class="docs-code"><code>{{ workerCode }}</code></pre>
 
-        <h3>Per-job — <code>Configure(IServiceCollection, IConfiguration)</code></h3>
+        <h3>Registering jobs</h3>
         <p>
-          Add a <code>Configure</code> method to a single job to register just what <em>it</em> needs.
-          The worker discovers it <strong>by name and signature</strong> (no interface to implement)
-          and calls it on <strong>every execution</strong>, workflow nodes included — so a job carries
-          its own dependencies without a global startup class:
+          Each job maps to a <strong>dispatch key</strong> (the value the scheduler sends). Put the
+          registration in one shared method that both the worker exe (<code>RegisterJobs</code>) and
+          the dashboard host (<code>AddJobs</code>) call, so both sides agree on the keys:
         </p>
-        <pre class="docs-code"><code>{{ jobConfigureCode }}</code></pre>
+        <pre class="docs-code"><code>{{ jobsRegistrationCode }}</code></pre>
         <ul class="docs-list">
-          <li>Set <code>Greeting:Salutation</code> from any config source — e.g. the env var <code>Greeting__Salutation=Hej</code> — and the job picks it up with no recompile.</li>
-          <li>A <strong>static</strong> hook needs no parameterless constructor; an <strong>instance</strong> hook does (else it's skipped, with a log line). If both exist, the static one wins.</li>
-          <li>Runs <em>after</em> the global <code>IWorkerStartup</code>, so a job can override what the startup registered.</li>
+          <li>The default <code>Add&lt;T&gt;()</code> key is the job's full type name, matching what <code>EnqueueAsync&lt;T&gt;()</code>, recurring jobs and workflow nodes emit — so registering by type just works.</li>
+          <li>Pass an explicit key (<code>Add&lt;T&gt;("my-key")</code>) for a stable key decoupled from the type, or a factory (<code>Add("key", sp =&gt; new MyJob(...))</code>) for bespoke construction.</li>
+          <li>Set option values from any config source — e.g. the env var <code>Greeting__Salutation=Hej</code> — and the job picks it up with no recompile.</li>
         </ul>
-
-        <h3>Global — <code>IWorkerStartup</code></h3>
-        <p>
-          For services every job shares (an <code>HttpClient</code>, a DB connection, typed options),
-          implement <code>IWorkerStartup</code> once anywhere in or beside your job assembly — the
-          worker finds the single implementation on its load path automatically:
-        </p>
-        <pre class="docs-code"><code>{{ workerStartupCode }}</code></pre>
         <p class="docs-note">
           More behaviour-oriented recipes (inputs, progress, output &amp; artifact passing, fan-out,
           conditions, retries, service nodes, cancellation) live in
