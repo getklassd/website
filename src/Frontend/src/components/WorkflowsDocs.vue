@@ -49,15 +49,11 @@ const dagCode = `registry.Register(new WorkflowBuilder("catalog-integration")
         .BindInput("dataset_ref", "data-proxy", "dataset_ref"))          // reads the artifact
     .Build());`
 
-const workerCode = `// Your worker exe (Program.cs): register the jobs it can run + the services they
-// take as constructor dependencies, then run the single job the scheduler dispatched.
+const workerCode = `// Your worker exe (Program.cs): register the jobs it can run, then run the single job
+// the scheduler dispatched. Each job declares its own dependencies (see below), so the
+// only thing on ConfigureServices is genuinely cross-cutting (shared by every job).
 return await WorkerHost.CreateBuilder(args)
-    .ConfigureServices((services, config) =>
-    {
-        services.AddHttpClient();
-        services.AddSingleton(new CatalogOptions { BaseUrl = config["Catalog:BaseUrl"]! });
-        services.AddSingleton(new GreetingOptions { Salutation = config["Greeting:Salutation"] ?? "Hello" });
-    })
+    .ConfigureServices((services, config) => services.AddHttpClient())  // cross-cutting only
     .RegisterJobs(MyJobs.Register)                          // the shared registration, below
     .AddArtifactProvider(new GcsArtifactStoreProvider())    // backends picked by name; "file" is built in
     .RunAsync();`
@@ -73,9 +69,14 @@ public static class MyJobs
         .Add("report", sp => new ReportJob(sp.GetRequiredService<IFoo>())); // explicit factory
 }
 
-// Jobs just declare what they need; constructed via ActivatorUtilities (or your factory).
+// A job declares its OWN dependencies on the static Configure — run only when this job is
+// dispatched (a worker pod runs one job), so jobs that aren't invoked cost nothing. The job
+// is then constructed by a source-generated factory (no reflection, no ActivatorUtilities).
 public sealed class SyncCatalogJob(IHttpClientFactory http, CatalogOptions opts) : IJob
 {
+    public static void Configure(IServiceCollection services, IConfiguration config) =>
+        services.AddSingleton(new CatalogOptions { BaseUrl = config["Catalog:BaseUrl"]! });
+
     public async Task RunAsync(IJobContext ctx) { /* use http, opts */ }
 }
 
@@ -152,7 +153,7 @@ const features: Feature[] = [
 
 interface Pkg { id: string; purpose: string }
 const packages: Pkg[] = [
-  { id: 'Klassd.Workflows.Abstractions', purpose: 'The contract jobs implement: IJob, IJobContext, the IArtifactStore seam, and the worker stdout protocol. No dependencies.' },
+  { id: 'Klassd.Workflows.Abstractions', purpose: 'The contract jobs implement: IJob (with the static Configure per-job DI hook), IJobContext, the IArtifactStore seam, and the worker stdout protocol. Bundles the source generator (as an analyzer) that emits a reflection-free constructor factory for every job.' },
   { id: 'Klassd.Workflows.Core', purpose: 'Scheduler, in-memory store, cron recurring loop (Cronos), job catalog, DAG orchestrator, filesystem artifact store, and the local-process executor.' },
   { id: 'Klassd.Workflows.Kubernetes', purpose: 'KubernetesJobExecutor — creates a batch/v1 Job per run and tails the pod logs. AddKubernetesExecutor().' },
   { id: 'Klassd.Workflows.Storage.Postgres', purpose: 'Durable IJobStore (+ dashboard user store) on PostgreSQL (jsonb documents + append-only logs). WorkflowsBuilder.UsePostgres().' },
@@ -160,7 +161,7 @@ const packages: Pkg[] = [
   { id: 'Klassd.Workflows.Storage.Sqlite', purpose: 'Durable IJobStore (+ dashboard user store) in a single SQLite file — zero infrastructure for single-node deployments. WorkflowsBuilder.UseSqlite().' },
   { id: 'Klassd.Workflows.Artifacts.S3', purpose: 'IArtifactStore on S3 / S3-compatible stores (provider name "s3") for large payloads passed between nodes.' },
   { id: 'Klassd.Workflows.Artifacts.Gcs', purpose: 'IArtifactStore on Google Cloud Storage (provider name "gcs").' },
-  { id: 'Klassd.Workflows.Worker', purpose: 'The worker host. WorkerHost.CreateBuilder(args).RegisterJobs(…).RunAsync() constructs the dispatched IJob from the registry and runs it against the stdout protocol — reference it from a thin exe, register the jobs it can run, and publish it as your own worker image. ConfigureServices supplies constructor dependencies (ActivatorUtilities) or use an explicit factory.' },
+  { id: 'Klassd.Workflows.Worker', purpose: 'The worker host. WorkerHost.CreateBuilder(args).RegisterJobs(…).RunAsync() constructs the dispatched IJob from the registry and runs it against the stdout protocol — reference it from a thin exe, register the jobs it can run, and publish it as your own worker image. Each job declares its own dependencies on the static IJob.Configure; construction is source-generated (no reflection) or use an explicit factory.' },
   { id: 'Klassd.Workflows.Dashboard', purpose: 'The live Blazor (Interactive Server) UI as a Razor Class Library — jobs catalog, run history, per-job console with inline progress bars, and DAG run views. Mount with AddKlassdWorkflowsDashboard() / MapKlassdWorkflowsDashboard().' },
   { id: 'Klassd.Workflows.Auth', purpose: 'Optional dashboard authentication: email/password Users admin + cookie sign-in, with loopback bypass for local/port-forward. AddKlassdWorkflowsAuth().' },
   { id: 'Klassd.Workflows.Auth.OpenIdConnect', purpose: 'OpenID Connect single sign-on for the dashboard, built on the Auth seam (links/provisions a user by email). AddKlassdWorkflowsOpenIdConnect().' },
@@ -308,8 +309,8 @@ const packages: Pkg[] = [
           The worker ships as a package: reference <code>Klassd.Workflows.Worker</code> from a thin exe,
           register the jobs it can run with
           <code>WorkerHost.CreateBuilder(args).RegisterJobs(…)</code>, and publish it as your own
-          worker image. Jobs are constructor-injected via <code>ConfigureServices</code> (config from
-          <code>appsettings</code> + <code>/secrets</code> + env) — see
+          worker image. Each job declares its own dependencies on the static <code>IJob.Configure</code>
+          (config from <code>appsettings</code> + <code>/secrets</code> + env) — see
           <a href="#di">Dependency injection</a>.
         </p>
       </section>
@@ -318,11 +319,15 @@ const packages: Pkg[] = [
       <section id="di" class="docs-section">
         <h2>Dependency injection</h2>
         <p>
-          Register the jobs a worker can run with <code>RegisterJobs</code>, and the services they
-          take through their constructors with <code>ConfigureServices</code>. Jobs are constructed
-          with <code>ActivatorUtilities</code> (or an explicit factory), so the registered services
-          flow into the constructor. Configuration is composed from
-          <code>appsettings[.{ENV}].json</code> → every <code>/secrets/*.json</code> (the Vault-agent
+          Register the jobs a worker can run with <code>RegisterJobs</code>. Each job declares its own
+          dependencies on a static <code>IJob.Configure(IServiceCollection, IConfiguration)</code> — run
+          <strong>only when that job is dispatched</strong> (a worker pod runs one job), so a worker
+          image hosting dozens of jobs never registers services the invoked job doesn't use. The job is
+          then built by a <strong>source-generated</strong> <code>new T(sp.GetRequiredService&lt;…&gt;())</code>
+          factory — no reflection, no <code>ActivatorUtilities</code>, trim/AOT-friendly (the generator
+          ships as an analyzer inside <code>Klassd.Workflows.Abstractions</code>). Reserve the worker-wide
+          <code>ConfigureServices</code> for genuinely cross-cutting services. Configuration is composed
+          from <code>appsettings[.{ENV}].json</code> → every <code>/secrets/*.json</code> (the Vault-agent
           drop dir) → environment variables (last wins), and is itself injectable.
         </p>
         <pre class="docs-code"><code>{{ workerCode }}</code></pre>
