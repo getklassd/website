@@ -126,7 +126,7 @@ const packages: Pkg[] = [
   { id: 'Klassd.Workflows.Storage.Sqlite', purpose: 'Durable IJobStore (+ dashboard user store) in a single SQLite file — zero infrastructure for single-node deployments. WorkflowsBuilder.UseSqlite().' },
   { id: 'Klassd.Workflows.Artifacts.S3', purpose: 'IArtifactStore on S3 / S3-compatible stores (provider name "s3") for large payloads passed between nodes.' },
   { id: 'Klassd.Workflows.Artifacts.Gcs', purpose: 'IArtifactStore on Google Cloud Storage (provider name "gcs").' },
-  { id: 'Klassd.Workflows.Worker', purpose: 'The worker host. WorkerHost.RunAsync() loads an IJob by name and runs it against the stdout protocol — reference it from a one-line exe plus your job assemblies to build your own worker image (or layer DLLs onto the base image). Optional IWorkerStartup adds DI.' },
+  { id: 'Klassd.Workflows.Worker', purpose: 'The worker host. WorkerHost.RunAsync() loads an IJob by name and runs it against the stdout protocol — reference it from a one-line exe plus your job assemblies to build your own worker image (or layer DLLs onto the base image). Optional IWorkerStartup adds DI for every job; a job can also define Configure(IServiceCollection, IConfiguration) to register its own per-execution dependencies.' },
   { id: 'Klassd.Workflows.Dashboard', purpose: 'The live Blazor (Interactive Server) UI as a Razor Class Library — jobs catalog, run history, per-job console with inline progress bars, and DAG run views. Mount with AddKlassdWorkflowsDashboard() / MapKlassdWorkflowsDashboard().' },
   { id: 'Klassd.Workflows.Auth', purpose: 'Optional dashboard authentication: email/password Users admin + cookie sign-in, with loopback bypass for local/port-forward. AddKlassdWorkflowsAuth().' },
   { id: 'Klassd.Workflows.Auth.OpenIdConnect', purpose: 'OpenID Connect single sign-on for the dashboard, built on the Auth seam (links/provisions a user by email). AddKlassdWorkflowsOpenIdConnect().' },
@@ -273,9 +273,11 @@ const packages: Pkg[] = [
         <p class="docs-note">
           The worker ships as a package: reference <code>Klassd.Workflows.Worker</code> from a one-line
           exe (<code>return await WorkerHost.RunAsync(args);</code>) plus your job assemblies to build
-          your own image, or layer your job DLLs onto the published base image. Implement
-          <code>IWorkerStartup</code> for constructor-injected jobs (config from
-          <code>appsettings</code> + <code>/secrets</code> + env).
+          your own image, or layer your job DLLs onto the published base image. Jobs are
+          constructor-injected: implement <code>IWorkerStartup</code> for DI shared by every job, or
+          give a job a <code>Configure(IServiceCollection, IConfiguration)</code> method to register
+          its own per-execution dependencies (config from <code>appsettings</code> +
+          <code>/secrets</code> + env).
         </p>
       </section>
 
