@@ -49,6 +49,44 @@ const dagCode = `registry.Register(new WorkflowBuilder("catalog-integration")
         .BindInput("dataset_ref", "data-proxy", "dataset_ref"))          // reads the artifact
     .Build());`
 
+const jobConfigureCode = `public sealed class ConfiguredGreetingJob(GreetingOptions options) : IJob
+{
+    // Convention hook — discovered by name/signature, no interface to implement.
+    // Called on every execution (workflow nodes included), before the job is constructed.
+    // A *static* hook needs no parameterless ctor, so prefer it when the hook needs no instance.
+    public static void Configure(IServiceCollection services, IConfiguration configuration)
+    {
+        var salutation = configuration["Greeting:Salutation"] ?? "Hello";
+        services.AddSingleton(new GreetingOptions { Salutation = salutation });
+    }
+
+    public Task RunAsync(IJobContext context)
+    {
+        var name = context.Arguments.GetValueOrDefault("name", "world");
+        context.Log($"{options.Salutation}, {name}!");      // options injected via ActivatorUtilities
+        return Task.CompletedTask;
+    }
+}
+
+// Need an *instance* hook (it reads instance state)? Then the job also needs a parameterless ctor,
+// so the worker can create it to call Configure — otherwise the hook is skipped (with a log line).`
+
+const workerStartupCode = `// One IWorkerStartup, discovered automatically — services shared by EVERY job in the image.
+public sealed class WorkerStartup : IWorkerStartup
+{
+    public void Configure(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddHttpClient();
+        services.AddSingleton(new CatalogOptions { BaseUrl = configuration["Catalog:BaseUrl"]! });
+    }
+}
+
+// Jobs just declare what they need; they're created with ActivatorUtilities.
+public sealed class SyncCatalogJob(IHttpClientFactory http, CatalogOptions opts) : IJob
+{
+    public async Task RunAsync(IJobContext ctx) { /* use http, opts */ }
+}`
+
 const sections = [
   { id: 'overview', label: 'Overview' },
   { id: 'quickstart', label: 'Quickstart' },
@@ -56,6 +94,7 @@ const sections = [
   { id: 'workflows', label: 'Workflows (DAGs)' },
   { id: 'containers', label: 'Container jobs & services' },
   { id: 'executors', label: 'Executors' },
+  { id: 'di', label: 'Dependency injection' },
   { id: 'pod-spec', label: 'Shaping the pod' },
   { id: 'storage', label: 'Storage & artifacts' },
   { id: 'auth', label: 'Dashboard auth' },
@@ -278,6 +317,45 @@ const packages: Pkg[] = [
           give a job a <code>Configure(IServiceCollection, IConfiguration)</code> method to register
           its own per-execution dependencies (config from <code>appsettings</code> +
           <code>/secrets</code> + env).
+        </p>
+      </section>
+
+      <!-- Dependency injection -->
+      <section id="di" class="docs-section">
+        <h2>Dependency injection</h2>
+        <p>
+          Jobs are created with <code>ActivatorUtilities</code>, so they can take constructor
+          dependencies. Configuration is composed once per execution from
+          <code>appsettings[.{ENV}].json</code> → every <code>/secrets/*.json</code> (the Vault-agent
+          drop dir) → environment variables (last wins), and is itself injectable. There are two ways
+          to register services — they compose, and a job that needs nothing keeps working unchanged.
+        </p>
+
+        <h3>Per-job — <code>Configure(IServiceCollection, IConfiguration)</code></h3>
+        <p>
+          Add a <code>Configure</code> method to a single job to register just what <em>it</em> needs.
+          The worker discovers it <strong>by name and signature</strong> (no interface to implement)
+          and calls it on <strong>every execution</strong>, workflow nodes included — so a job carries
+          its own dependencies without a global startup class:
+        </p>
+        <pre class="docs-code"><code>{{ jobConfigureCode }}</code></pre>
+        <ul class="docs-list">
+          <li>Set <code>Greeting:Salutation</code> from any config source — e.g. the env var <code>Greeting__Salutation=Hej</code> — and the job picks it up with no recompile.</li>
+          <li>A <strong>static</strong> hook needs no parameterless constructor; an <strong>instance</strong> hook does (else it's skipped, with a log line). If both exist, the static one wins.</li>
+          <li>Runs <em>after</em> the global <code>IWorkerStartup</code>, so a job can override what the startup registered.</li>
+        </ul>
+
+        <h3>Global — <code>IWorkerStartup</code></h3>
+        <p>
+          For services every job shares (an <code>HttpClient</code>, a DB connection, typed options),
+          implement <code>IWorkerStartup</code> once anywhere in or beside your job assembly — the
+          worker finds the single implementation on its load path automatically:
+        </p>
+        <pre class="docs-code"><code>{{ workerStartupCode }}</code></pre>
+        <p class="docs-note">
+          More behaviour-oriented recipes (inputs, progress, output &amp; artifact passing, fan-out,
+          conditions, retries, service nodes, cancellation) live in
+          <a href="https://github.com/getklassd/Klassd.Workflows/blob/main/docs/recipes.md" target="_blank" rel="noopener">docs/recipes.md</a>.
         </p>
       </section>
 
