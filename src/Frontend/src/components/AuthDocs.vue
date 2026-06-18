@@ -7,8 +7,11 @@ const installCode = `dotnet add package Klassd.Auth.Core --prerelease
 dotnet add package Klassd.Auth.Data.Sqlite --prerelease       # storage adapter (or .Data.Postgres / .Data.MongoDb)
 dotnet add package Klassd.Auth.AspNetCore --prerelease        # JSON/JWT HTTP API (MapKlassdAuth)
 dotnet add package Klassd.Auth.AspNetCore.Cookies --prerelease  # cookie sign-in for Blazor / server-rendered apps
+dotnet add package Klassd.Auth.Passwordless --prerelease      # one-time codes (email + SMS)
+dotnet add package Klassd.Auth.Passkeys --prerelease          # passkeys (WebAuthn / FIDO2)
+dotnet add package Klassd.Auth.Sms.Twilio --prerelease        # optional: Twilio SMS sender
 dotnet add package Klassd.Auth.OpenIdConnect --prerelease     # OIDC external login + Entra ID + Google
-dotnet add package Klassd.Auth.OAuth --prerelease             # OAuth 2.0 providers — GitHub`
+dotnet add package Klassd.Auth.OAuth --prerelease             # OAuth 2.0 — GitHub, Facebook, Instagram, TikTok`
 
 const quickstartCode = `builder.Services
     .AddKlassdAuth(new SessionConfig { SigningKey = "<32+ byte secret>" })
@@ -48,6 +51,43 @@ var app = builder.Build();
 app.UseKlassdAuthCookies();   // wires middleware + /auth/login, /auth/logout, /auth/external/{scheme}
 app.Run();`
 
+const passwordlessCode = `auth.AddPasswordless();                    // 6-digit codes, 10-min TTL, 5 attempts (defaults)
+auth.AddTwilioSms(sid, token, fromNumber); // optional: real SMS (otherwise codes log to the console)
+
+app.MapKlassdPasswordless();               // JSON: POST /auth/passwordless/{start,verify}
+
+// POST /auth/passwordless/start  { "identifier": "a@b.com", "channel": "Email" }  -> 202 (always)
+// POST /auth/passwordless/verify { "identifier": "a@b.com", "channel": "Email", "code": "123456" }
+//   -> session tokens; resolves or auto-provisions the user by email/phone.
+// MapKlassdPasswordlessCookie() signs the user into the app cookie instead.`
+
+const passkeyCode = `auth.AddPasskeys(o =>
+{
+    o.ServerDomain = "example.com";              // the WebAuthn relying-party id (use "localhost" in dev)
+    o.Origins      = ["https://example.com"];
+});
+
+app.MapKlassdPasskeys();   // POST /passkeys/{register,login}/{options,verify}
+
+// register/* requires an authenticated user; login supports usernameless / discoverable credentials.
+// The ceremony challenge rides a stateless, DataProtection-protected cookie (multi-node safe).
+// register/verify -> session tokens; MapKlassdPasskeysCookie() issues the app cookie instead.`
+
+const linkingCode = `// Cookie endpoints — the signed-in user links to THEIR account:
+//   GET  /auth/link/{scheme}   -> challenge a provider, attach it on the callback
+//   POST /auth/link/password   -> a social-/passwordless-only user gains a password
+//   POST /auth/unlink          -> remove a method (the last one is guarded)
+//   GET  /auth/me/methods      -> list the caller's own login methods
+
+// Or from code, via UserAccountService:
+await accounts.LinkExternalAsync(userId, "facebook", info);  // never steals an identity owned elsewhere
+await accounts.AddPasswordAsync(userId, password);           // false if a password already exists
+await accounts.UnlinkAsync(userId, methodId);                // false if it is the last method
+
+// Opt-in: auto-merge an unauthenticated social sign-in into an existing account, but ONLY on a
+// provider-VERIFIED matching email (off by default — unverified-email auto-link is a takeover vector):
+auth.AddKlassdAuthCookies(o => o.AutoLinkByVerifiedEmail = true);`
+
 const externalCode = `// Microsoft Entra ID (Azure AD). tenantId can be a directory id, or "organizations"/"common".
 auth.AddEntraId(
     tenantId:     builder.Configuration["Auth:Entra:TenantId"]!,
@@ -56,6 +96,9 @@ auth.AddEntraId(
 
 auth.AddGoogle(clientId, clientSecret);        // OIDC
 auth.AddGitHub(clientId, clientSecret);        // OAuth 2.0 (non-OIDC)
+auth.AddFacebook(clientId, clientSecret);      // OAuth 2.0
+auth.AddInstagram(clientId, clientSecret);     // OAuth 2.0 — no email returned
+auth.AddTikTok(clientKey, clientSecret);       // OAuth 2.0 — no email returned
 auth.AddOpenIdConnect("Company SSO", config.GetSection("Oidc"));  // any other OIDC provider`
 
 const mfaCode = `// POST /auth/mfa/enroll  → generates a TOTP secret + an otpauth:// URI (render as a QR code)
@@ -104,8 +147,11 @@ const sections = [
   { id: 'overview', label: 'Overview' },
   { id: 'quickstart', label: 'Quickstart' },
   { id: 'sessions', label: 'Email/password & sessions' },
+  { id: 'passwordless', label: 'Passwordless (email & SMS)' },
+  { id: 'passkeys', label: 'Passkeys (WebAuthn)' },
   { id: 'cookies', label: 'Cookie sign-in for Blazor' },
-  { id: 'external', label: 'External login (OIDC / Entra)' },
+  { id: 'external', label: 'Social login & SSO' },
+  { id: 'linking', label: 'Account linking' },
   { id: 'mfa', label: 'MFA (TOTP)' },
   { id: 'email', label: 'Email verification' },
   { id: 'metadata', label: 'User metadata & roles' },
@@ -117,8 +163,11 @@ const sections = [
 interface Feature { title: string; body: string }
 const features: Feature[] = [
   { title: 'Email & password', body: 'Sign-up / sign-in with PBKDF2-HMAC-SHA256 hashing and per-password salts (swap for Argon2id if preferred). The endpoints ship with the library — you never hand-write them.' },
+  { title: 'Passwordless codes', body: 'One-time codes over email or SMS — fixed-time compare, TTL and attempt lockout, no account enumeration. Bring your own sender, or drop in the Twilio package for SMS.' },
+  { title: 'Passkeys (WebAuthn)', body: 'Phishing-resistant FIDO2 sign-in built on Fido2NetLib, including usernameless/discoverable login. The ceremony challenge rides a stateless, DataProtection-protected cookie — multi-node safe.' },
   { title: 'Sessions done right', body: 'A short-lived, stateless access JWT plus an opaque, rotating refresh token. Reuse of a rotated refresh token is detected and revokes the session defensively.' },
-  { title: 'Social login & SSO', body: 'OpenID Connect external login — Microsoft Entra ID, Google, and GitHub (OAuth) — linked or auto-provisioned by email, with a clean seam for adding your own provider.' },
+  { title: 'Social login & SSO', body: 'OIDC (Entra ID, Google) and OAuth 2.0 (GitHub, Facebook, Instagram, TikTok) external login, with a clean seam for adding your own provider.' },
+  { title: 'Account linking', body: 'One identity, many login methods. Add a password or link a social account to an existing user; unlink is guarded so the last method can never be removed. Opt-in auto-link only on a verified email.' },
   { title: 'MFA (TOTP)', body: 'Enroll a TOTP authenticator: the core generates a secret and an otpauth:// URI for the QR code, then verifies six-digit codes at sign-in.' },
   { title: 'Email verification', body: 'Send a verification link and consume single-use tokens. Tokens are hashed, TTL-bound and persisted by the storage adapter, so they survive restarts and scale across nodes.' },
   { title: 'Per-user typed metadata', body: 'Store app-specific data as one JSON document accessed through typed sections, so two apps never collide. Roles ride the same mechanism via RolesService.' },
@@ -132,9 +181,12 @@ const packages: Pkg[] = [
   { id: 'Klassd.Auth.Abstractions', purpose: 'Store interfaces (IUserStore / ISessionStore / IUserMetadataStore) + DB-agnostic record types. No dependencies.' },
   { id: 'Klassd.Auth.Core', purpose: 'The auth logic: email/password, sessions, third-party login, MFA, email verification, and metadata — storage-agnostic. AddKlassdAuth().' },
   { id: 'Klassd.Auth.AspNetCore', purpose: 'JSON/JWT HTTP delivery — one MapKlassdAuth() call wires the whole API (signup/signin/refresh/logout, MFA, email, metadata, JWKS). MapKlassdAuthAdmin() adds protected admin endpoints.' },
-  { id: 'Klassd.Auth.AspNetCore.Cookies', purpose: 'Cookie sign-in for server-rendered / Blazor apps + external-SSO seam. AddKlassdAuthCookies() / UseKlassdAuthCookies(); optional loopback bypass.' },
+  { id: 'Klassd.Auth.AspNetCore.Cookies', purpose: 'Cookie sign-in for server-rendered / Blazor apps + external-SSO & account-linking seam. AddKlassdAuthCookies() / UseKlassdAuthCookies(); optional loopback bypass.' },
+  { id: 'Klassd.Auth.Passwordless', purpose: 'Passwordless one-time codes over email and SMS. AddPasswordless() + MapKlassdPasswordless() (JSON and cookie variants).' },
+  { id: 'Klassd.Auth.Passkeys', purpose: 'Passkeys (WebAuthn / FIDO2) via Fido2NetLib, with a stateless DataProtection ceremony-challenge store. AddPasskeys() + MapKlassdPasskeys().' },
+  { id: 'Klassd.Auth.Sms.Twilio', purpose: 'Twilio ISmsSender for passwordless-over-SMS delivery. AddTwilioSms(accountSid, authToken, fromNumber).' },
   { id: 'Klassd.Auth.OpenIdConnect', purpose: 'OIDC external login, including Microsoft Entra ID (AddEntraId) and Google (AddGoogle), plus AddOpenIdConnect() for any other OIDC provider.' },
-  { id: 'Klassd.Auth.OAuth', purpose: 'OAuth 2.0 (non-OIDC) providers — GitHub (AddGitHub).' },
+  { id: 'Klassd.Auth.OAuth', purpose: 'OAuth 2.0 (non-OIDC) providers — GitHub, Facebook, Instagram, TikTok. Instagram/TikTok return no email.' },
   { id: 'Klassd.Auth.Data.Sqlite', purpose: 'SQLite storage adapter (raw Microsoft.Data.Sqlite, JSON-in-TEXT) — zero infrastructure for single-node deployments. UseSqlite().' },
   { id: 'Klassd.Auth.Data.Postgres', purpose: 'PostgreSQL storage adapter (raw Npgsql, jsonb). UsePostgres().' },
   { id: 'Klassd.Auth.Data.MongoDb', purpose: 'MongoDB storage adapter (MongoDB.Driver). UseMongoDb().' },
@@ -157,10 +209,10 @@ const packages: Pkg[] = [
         <h1>Self-hostable authentication for .NET</h1>
         <p class="docs-lede">
           Klassd.Auth is a code-first, NuGet-distributed authentication core for .NET —
-          email/password, rotating sessions, social login &amp; SSO, MFA, email verification and a
-          per-user metadata store. The HTTP API ships with the library: one
-          <strong>MapKlassdAuth()</strong> call mounts the whole thing and the schema is created at
-          startup.
+          email/password, passwordless codes, passkeys, rotating sessions, social login &amp; SSO,
+          account linking, MFA, email verification and a per-user metadata store. The HTTP API ships
+          with the library: one <strong>MapKlassdAuth()</strong> call mounts the core and the schema
+          is created at startup.
         </p>
         <p class="docs-lede-meta">
           ← Back to the <a href="/auth">Auth overview</a>. A companion to
@@ -213,6 +265,38 @@ const packages: Pkg[] = [
         </ul>
       </section>
 
+      <!-- Passwordless -->
+      <section id="passwordless" class="docs-section">
+        <h2>Passwordless <span class="docs-opt">(email &amp; SMS one-time codes)</span></h2>
+        <p>
+          Add passwordless sign-in and map its endpoints. Codes are stored hashed with a TTL and an
+          attempt counter, compared in fixed time, and delivered through the registered sender —
+          email out of the box, or SMS via the Twilio package (otherwise codes log to the console):
+        </p>
+        <pre class="docs-code"><code>{{ passwordlessCode }}</code></pre>
+        <ul class="docs-list">
+          <li><strong>No enumeration</strong> — <code>start</code> always returns <code>202</code>, never revealing whether the identifier maps to an account.</li>
+          <li><strong>Throttled</strong> — codes expire (default 10 min) and lock out after a configurable number of failed attempts.</li>
+          <li><strong>Resolve or provision</strong> — a successful <code>verify</code> finds the user by email/phone, or creates one. The cookie variant signs the user in instead of returning tokens.</li>
+        </ul>
+      </section>
+
+      <!-- Passkeys -->
+      <section id="passkeys" class="docs-section">
+        <h2>Passkeys <span class="docs-opt">(WebAuthn / FIDO2)</span></h2>
+        <p>
+          Phishing-resistant passkeys built on <strong>Fido2NetLib</strong>, with usernameless /
+          discoverable login. Registration runs against the authenticated user; the four ceremony
+          endpoints handle the browser <code>navigator.credentials</code> round-trips:
+        </p>
+        <pre class="docs-code"><code>{{ passkeyCode }}</code></pre>
+        <ul class="docs-list">
+          <li><strong>Stateless challenge</strong> — the per-ceremony challenge is held in a DataProtection-protected cookie, so it works across nodes with no shared cache (an in-memory store is available for single-node).</li>
+          <li><strong>Clone detection</strong> — the signature counter is persisted and validated on each assertion.</li>
+          <li><strong>Credentials</strong> — stored in a <code>passkey_credentials</code> table per storage adapter; a user can register several.</li>
+        </ul>
+      </section>
+
       <!-- Cookies -->
       <section id="cookies" class="docs-section">
         <h2>Cookie sign-in for Blazor <span class="docs-opt">(server-rendered)</span></h2>
@@ -231,17 +315,35 @@ const packages: Pkg[] = [
 
       <!-- External -->
       <section id="external" class="docs-section">
-        <h2>External login (OIDC / Entra ID / Google / GitHub)</h2>
+        <h2>Social login &amp; SSO <span class="docs-opt">(OIDC &amp; OAuth 2.0)</span></h2>
         <p>
-          Add external providers on the same builder. An SSO identity is linked to an existing user by
-          email, or auto-provisioned, through <code>UserAccountService.ProvisionExternalAsync(...)</code>:
+          Add external providers on the same builder. On an unauthenticated sign-in the identity is
+          auto-provisioned (or, opt-in, merged into a matching account) through
+          <code>UserAccountService.ProvisionExternalAsync(...)</code>; a signed-in user links one
+          explicitly (see <a href="#linking">Account linking</a>):
         </p>
         <pre class="docs-code"><code>{{ externalCode }}</code></pre>
         <ul class="docs-list">
-          <li><strong>Entra ID</strong> — OIDC under the hood: stable id from the <code>oid</code> claim, name from <code>preferred_username</code>. <code>tenantId</code> can be a directory id or <code>organizations</code>/<code>common</code>.</li>
-          <li><strong>Google</strong> — OIDC via <code>AddGoogle(clientId, clientSecret)</code>.</li>
-          <li><strong>GitHub</strong> — OAuth 2.0 (non-OIDC) via <code>AddGitHub(...)</code> from <code>Klassd.Auth.OAuth</code>.</li>
+          <li><strong>Entra ID</strong> — OIDC: stable id from the <code>oid</code> claim, name from <code>preferred_username</code>. <code>tenantId</code> can be a directory id or <code>organizations</code>/<code>common</code>.</li>
+          <li><strong>Google</strong> — OIDC via <code>AddGoogle(...)</code> (<code>Klassd.Auth.OpenIdConnect</code>).</li>
+          <li><strong>GitHub / Facebook / Instagram / TikTok</strong> — OAuth 2.0 via <code>AddGitHub/AddFacebook/AddInstagram/AddTikTok(...)</code> (<code>Klassd.Auth.OAuth</code>). Instagram and TikTok return <em>no email</em>, so they only ever explicit-link or provision a fresh account.</li>
           <li><strong>Anything else</strong> — <code>AddOpenIdConnect(name, configSection)</code> for any standards-compliant OIDC provider (Okta, Auth0, …).</li>
+        </ul>
+      </section>
+
+      <!-- Account linking -->
+      <section id="linking" class="docs-section">
+        <h2>Account linking</h2>
+        <p>
+          An account is one identity with many <code>LoginMethod</code>s. A signed-in user can attach
+          another provider, add a password, or remove a method — all keyed to their own session:
+        </p>
+        <pre class="docs-code"><code>{{ linkingCode }}</code></pre>
+        <ul class="docs-list">
+          <li><strong>Explicit &amp; safe</strong> — linking is tied to the authenticated session; an identity already owned by another user is never stolen (it returns a conflict).</li>
+          <li><strong>Add a password</strong> — a social- or passwordless-only account can gain a password; passwordless stays available on any account carrying that email/phone.</li>
+          <li><strong>Last-method guard</strong> — unlinking refuses to remove a user's final login method, so an account can't lock itself out.</li>
+          <li><strong>Opt-in auto-link</strong> — an unauthenticated social sign-in merges into an existing account only on a provider-<em>verified</em> matching email (<code>AutoLinkByVerifiedEmail</code>, off by default).</li>
         </ul>
       </section>
 
