@@ -75,6 +75,7 @@ builder.Services
 
 var app = builder.Build();
 app.UseKlassd();   // auth + antiforgery + seed/init + static assets + /api + Blazor admin
+//  app.UseKlassd("/cms");  // …or host the whole CMS under a sub-path: /cms/admin + /cms/api
 app.Run();`
 
 const editorCode = `@attribute [PropertyEditor("color")]

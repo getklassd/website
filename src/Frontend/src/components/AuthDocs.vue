@@ -134,11 +134,11 @@ app.MapKlassdAuth(o => o.PasswordResetUrlBase = "https://app.example/reset-passw
 
 const dashboardCode = `auth.AddKlassdAuthDashboard();   // after AddKlassdAuth(...) + a storage adapter
 
-app.UseAntiforgery();
-app.MapStaticAssets();
-app.MapKlassdAuthDashboard(authorizationPolicy: "Admin");   // Blazor UI at /auth/dashboard
+// Configurable path (default "/auth/dashboard"); ALWAYS requires login (anonymous -> cookie login path).
+app.MapKlassdAuthDashboard(authorizationPolicy: "Admin");
+app.MapKlassdAuthDashboard("/admin/users", "Admin");   // …or mount it anywhere
 
-// The host enables Blazor Server and, since its only components come from this RCL, sets
+// A self-contained branch — it owns routing/auth/antiforgery/static assets. The host only sets
 // <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets> in its csproj (else blazor.web.js 404s).`
 
 const webhookCode = `auth.AddKlassdAuthWebhooks(o => o.SigningSecrets.Add(config["Auth:Webhooks:Secret"]!));
@@ -447,8 +447,10 @@ const packages: Pkg[] = [
         </p>
         <pre class="docs-code"><code>{{ dashboardCode }}</code></pre>
         <ul class="docs-list">
+          <li><strong>Requires login</strong> — the mount always authorizes; anonymous visitors are redirected to the cookie login path. Pass a policy to also gate by role.</li>
+          <li><strong>Configurable path</strong> — defaults to <code>/auth/dashboard</code>; pass any base path to <code>MapKlassdAuthDashboard</code> to mount it elsewhere.</li>
           <li><strong>Destructive ops</strong> — disable (revokes sessions), hard <strong>delete</strong> (cascades sessions/passkeys/metadata), and <strong>anonymize</strong> (GDPR erasure: strips PII but keeps the id row).</li>
-          <li><strong>Self-contained</strong> — ships its own stylesheet; gate the route with your admin policy.</li>
+          <li><strong>Self-contained</strong> — a pipeline branch owning its routing/auth/antiforgery/static assets; ships its own stylesheet.</li>
         </ul>
       </section>
 
