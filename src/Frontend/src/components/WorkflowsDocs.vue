@@ -396,9 +396,11 @@ const packages: Pkg[] = [
         </p>
         <pre class="docs-code"><code>{{ authCode }}</code></pre>
         <ul class="docs-list">
+          <li><strong>SSO <em>and</em> a password on one account</strong> — an SSO sign-in whose provider-verified email matches a password account attaches to it (one user, either method). Staff self-serve from the <strong>Your account</strong> page: add a password, link/unlink a provider.</li>
           <li><strong>Loopback bypass</strong> — requests from <code>127.0.0.1</code>/<code>::1</code> skip auth, so local dev <em>and</em> <code>kubectl port-forward</code> need no login. Ingress traffic is always authenticated.</li>
           <li><strong>Seed admin</strong> — a first user is created from config on a fresh deployment, so you're never locked out.</li>
           <li><strong>Durable users</strong> — stored alongside jobs in your Postgres / MongoDB / SQLite store.</li>
+          <li><strong>Embed in an existing app</strong> — set <code>OwnsHost = false</code> with the dashboard's <code>BasePath</code> to mount it inside a host that already has its own authentication; dashboard sign-in is scoped to its routes and never touches the host's auth.</li>
         </ul>
       </section>
 
