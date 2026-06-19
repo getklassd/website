@@ -20,6 +20,8 @@ const features: Feature[] = [
   { title: 'Pluggable storage', body: 'The core depends only on IUserStore / ISessionStore / IUserMetadataStore. Bind a database with a Data.* adapter — SQLite, PostgreSQL or MongoDB — using raw drivers, no EF/ORM.' },
   { title: 'Drop-in cookie sign-in', body: 'For Blazor / server-rendered apps, add cookie delivery and the external-SSO seam with one call. Optional loopback bypass means no login on localhost / port-forward.' },
   { title: 'JWKS & RS256 signing', body: 'HS256 by default, or asymmetric RS256 with a fixed or auto-rotating key set persisted in the store. Public keys are published at /auth/jwks.json so resource servers validate without a shared secret.' },
+  { title: 'Admin dashboard', body: 'A drop-in Blazor admin UI to maintain users — list/search, create, enable/disable, set password, edit roles, manage linked methods, and delete or anonymize. One MapKlassdAuthDashboard() call.' },
+  { title: 'Automation webhooks', body: 'Inbound HMAC-signed webhooks let a customer-service tool disable, delete or anonymize a user — so a support ticket can be automated end-to-end, with replay protection and an audit log.' },
 ]
 
 const quickstartCode = `builder.Services

@@ -11,7 +11,9 @@ dotnet add package Klassd.Auth.Passwordless --prerelease      # one-time codes (
 dotnet add package Klassd.Auth.Passkeys --prerelease          # passkeys (WebAuthn / FIDO2)
 dotnet add package Klassd.Auth.Sms.Twilio --prerelease        # optional: Twilio SMS sender
 dotnet add package Klassd.Auth.OpenIdConnect --prerelease     # OIDC external login + Entra ID + Google
-dotnet add package Klassd.Auth.OAuth --prerelease             # OAuth 2.0 — GitHub, Facebook, Instagram, TikTok`
+dotnet add package Klassd.Auth.OAuth --prerelease             # OAuth 2.0 — GitHub, Facebook, Instagram, TikTok
+dotnet add package Klassd.Auth.Dashboard --prerelease         # Blazor user-admin dashboard
+dotnet add package Klassd.Auth.Webhooks --prerelease          # inbound HMAC webhooks (disable/delete/anonymize)`
 
 const quickstartCode = `builder.Services
     .AddKlassdAuth(new SessionConfig { SigningKey = "<32+ byte secret>" })
@@ -88,6 +90,16 @@ await accounts.UnlinkAsync(userId, methodId);                // false if it is t
 // provider-VERIFIED matching email (off by default — unverified-email auto-link is a takeover vector):
 auth.AddKlassdAuthCookies(o => o.AutoLinkByVerifiedEmail = true);`
 
+const collectEmailCode = `// Instagram & TikTok never share an email (Facebook may be denied), so those accounts are
+// provisioned with PrimaryEmail = null. Collect + verify one after sign-in:
+
+//   POST /auth/me/email            { email }   -> sends a verification link (409 if already in use)
+//   GET  /auth/me/email/confirm?token=…        -> sets it as the user's VERIFIED primary email
+
+// From code:
+if (user.PrimaryEmail is null) { /* route to your "add your email" page */ }
+await accounts.SetPrimaryEmailAsync(userId, email, verified: true);  // guards against an email owned elsewhere`
+
 const externalCode = `// Microsoft Entra ID (Azure AD). tenantId can be a directory id, or "organizations"/"common".
 auth.AddEntraId(
     tenantId:     builder.Configuration["Auth:Entra:TenantId"]!,
@@ -111,6 +123,31 @@ const verifyCode = `// POST /auth/email/send-verification → sends a verificati
 //
 // Tokens are hashed, TTL-bound and persisted by the storage adapter, so they survive
 // restarts and work across multiple nodes.`
+
+const resetCode = `// Self-service "forgot password" — emailed single-use link, no account enumeration:
+//   POST /auth/password/forgot { "identifier": "a@b.com" }                    -> 202 (always)
+//   POST /auth/password/reset  { "token": "…", "newPassword": "…" }            -> 204 / 400
+//
+// reset consumes the token, sets the password (adding an email/password method if the account had
+// none) and REVOKES the user's existing sessions. Configure the link's base URL:
+app.MapKlassdAuth(o => o.PasswordResetUrlBase = "https://app.example/reset-password");`
+
+const dashboardCode = `auth.AddKlassdAuthDashboard();   // after AddKlassdAuth(...) + a storage adapter
+
+app.UseAntiforgery();
+app.MapStaticAssets();
+app.MapKlassdAuthDashboard(authorizationPolicy: "Admin");   // Blazor UI at /auth/dashboard
+
+// The host enables Blazor Server and, since its only components come from this RCL, sets
+// <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets> in its csproj (else blazor.web.js 404s).`
+
+const webhookCode = `auth.AddKlassdAuthWebhooks(o => o.SigningSecrets.Add(config["Auth:Webhooks:Secret"]!));
+app.MapKlassdAuthWebhooks();   // POST /auth/webhooks/users
+
+// The caller signs the request; Klassd.Auth verifies it (401 on forged/stale/unsigned):
+//   X-Klassd-Timestamp: <unix seconds>
+//   X-Klassd-Signature: sha256=<hex HMAC-SHA256 of "{timestamp}.{body}">
+//   { "action": "disable"|"enable"|"delete"|"anonymize", "userId"|"email": "…", "reason": "…" }`
 
 const metadataCode = `// One JSON document per user, accessed through typed sections so apps never collide:
 await meta.SetAsync(userId, "cms:prefs", new CmsPrefs { Theme = "dark", Locale = "da" });
@@ -154,6 +191,9 @@ const sections = [
   { id: 'linking', label: 'Account linking' },
   { id: 'mfa', label: 'MFA (TOTP)' },
   { id: 'email', label: 'Email verification' },
+  { id: 'reset', label: 'Password reset' },
+  { id: 'dashboard', label: 'Admin dashboard' },
+  { id: 'webhooks', label: 'Webhooks' },
   { id: 'metadata', label: 'User metadata & roles' },
   { id: 'signing', label: 'Token signing' },
   { id: 'storage', label: 'Storage adapters' },
@@ -174,6 +214,8 @@ const features: Feature[] = [
   { title: 'Pluggable storage', body: 'The core depends only on IUserStore / ISessionStore / IUserMetadataStore. Bind SQLite, PostgreSQL or MongoDB with a Data.* adapter — raw drivers, no EF/ORM.' },
   { title: 'Drop-in cookie sign-in', body: 'For Blazor / server-rendered apps, add cookie delivery and the external-SSO seam with one call. Optional loopback bypass means no login on localhost / port-forward.' },
   { title: 'JWKS & RS256 signing', body: 'HS256 by default, or asymmetric RS256 with a fixed or auto-rotating key set persisted in the store. Public keys are published at /auth/jwks.json for shared-secret-free validation.' },
+  { title: 'Admin dashboard', body: 'A drop-in Blazor (Interactive Server) UI to maintain users — list/search, create, enable/disable, set password, edit roles, manage linked methods, and delete or anonymize (GDPR erasure).' },
+  { title: 'Automation webhooks', body: 'Inbound HMAC-signed webhooks let a customer-service tool disable, delete or anonymize a user — so a support ticket can be automated end-to-end, with replay protection and an audit log.' },
 ]
 
 interface Pkg { id: string; purpose: string }
@@ -185,6 +227,8 @@ const packages: Pkg[] = [
   { id: 'Klassd.Auth.Passwordless', purpose: 'Passwordless one-time codes over email and SMS. AddPasswordless() + MapKlassdPasswordless() (JSON and cookie variants).' },
   { id: 'Klassd.Auth.Passkeys', purpose: 'Passkeys (WebAuthn / FIDO2) via Fido2NetLib, with a stateless DataProtection ceremony-challenge store. AddPasskeys() + MapKlassdPasskeys().' },
   { id: 'Klassd.Auth.Sms.Twilio', purpose: 'Twilio ISmsSender for passwordless-over-SMS delivery. AddTwilioSms(accountSid, authToken, fromNumber).' },
+  { id: 'Klassd.Auth.Dashboard', purpose: 'Drop-in Blazor (Interactive Server) user-admin dashboard — list/create/disable/delete/anonymize, roles, linked methods. AddKlassdAuthDashboard() + MapKlassdAuthDashboard().' },
+  { id: 'Klassd.Auth.Webhooks', purpose: 'Inbound HMAC-signed webhooks so external tooling can disable/enable/delete/anonymize a user. AddKlassdAuthWebhooks() + MapKlassdAuthWebhooks().' },
   { id: 'Klassd.Auth.OpenIdConnect', purpose: 'OIDC external login, including Microsoft Entra ID (AddEntraId) and Google (AddGoogle), plus AddOpenIdConnect() for any other OIDC provider.' },
   { id: 'Klassd.Auth.OAuth', purpose: 'OAuth 2.0 (non-OIDC) providers — GitHub, Facebook, Instagram, TikTok. Instagram/TikTok return no email.' },
   { id: 'Klassd.Auth.Data.Sqlite', purpose: 'SQLite storage adapter (raw Microsoft.Data.Sqlite, JSON-in-TEXT) — zero infrastructure for single-node deployments. UseSqlite().' },
@@ -345,6 +389,20 @@ const packages: Pkg[] = [
           <li><strong>Last-method guard</strong> — unlinking refuses to remove a user's final login method, so an account can't lock itself out.</li>
           <li><strong>Opt-in auto-link</strong> — an unauthenticated social sign-in merges into an existing account only on a provider-<em>verified</em> matching email (<code>AutoLinkByVerifiedEmail</code>, off by default).</li>
         </ul>
+
+        <h3>Collecting an email from no-email providers</h3>
+        <p>
+          Instagram and TikTok never share an email (Facebook may be denied), so those accounts are
+          provisioned with a <code>null</code> primary email — it's nullable by design. Collect and
+          verify one after sign-in, then treat the account as complete:
+        </p>
+        <pre class="docs-code"><code>{{ collectEmailCode }}</code></pre>
+        <p class="docs-note">
+          <code>start</code> rejects an address already owned by another user; the confirm link's
+          token is the proof of ownership, so the address becomes the user's <strong>verified</strong>
+          primary email (and a usable passwordless identity). Apps that require an email can gate on
+          <code>PrimaryEmail is null</code> and route to the collection page.
+        </p>
       </section>
 
       <!-- MFA -->
@@ -365,6 +423,48 @@ const packages: Pkg[] = [
         <p class="docs-note">
           Verification tokens are hashed, TTL-bound and single-use, persisted by the storage adapter —
           so they survive restarts and scale across nodes.
+        </p>
+      </section>
+
+      <!-- Password reset -->
+      <section id="reset" class="docs-section">
+        <h2>Password reset <span class="docs-opt">(forgot password)</span></h2>
+        <p>
+          Self-service reset by emailed single-use link. <code>forgot</code> always returns
+          <code>202</code> (no account enumeration); <code>reset</code> sets the new password and
+          revokes the user's existing sessions:
+        </p>
+        <pre class="docs-code"><code>{{ resetCode }}</code></pre>
+      </section>
+
+      <!-- Dashboard -->
+      <section id="dashboard" class="docs-section">
+        <h2>Admin dashboard <span class="docs-opt">(Blazor)</span></h2>
+        <p>
+          A drop-in Blazor (Interactive Server) UI to maintain users — list/search, create,
+          enable/disable, set password, edit roles, manage linked login methods, and delete or
+          anonymize behind a typed confirm. It talks in-process to the auth services (no extra API):
+        </p>
+        <pre class="docs-code"><code>{{ dashboardCode }}</code></pre>
+        <ul class="docs-list">
+          <li><strong>Destructive ops</strong> — disable (revokes sessions), hard <strong>delete</strong> (cascades sessions/passkeys/metadata), and <strong>anonymize</strong> (GDPR erasure: strips PII but keeps the id row).</li>
+          <li><strong>Self-contained</strong> — ships its own stylesheet; gate the route with your admin policy.</li>
+        </ul>
+      </section>
+
+      <!-- Webhooks -->
+      <section id="webhooks" class="docs-section">
+        <h2>Webhooks <span class="docs-opt">(automate customer-service requests)</span></h2>
+        <p>
+          Let an external system (e.g. a support tool) disable, enable, delete or anonymize a user via
+          an <strong>HMAC-signed</strong> request — so a "please close my account" ticket can be
+          automated end-to-end:
+        </p>
+        <pre class="docs-code"><code>{{ webhookCode }}</code></pre>
+        <p class="docs-note">
+          Verification mirrors the Klassd CMS outbound signing scheme and adds a timestamp tolerance
+          (default 300s) to reject replays. Forged/stale/unsigned requests get <code>401</code>;
+          unknown users <code>404</code>; each applied action is logged for an audit trail.
         </p>
       </section>
 
