@@ -22,6 +22,9 @@ const features: Feature[] = [
   { title: 'JWKS & RS256 signing', body: 'HS256 by default, or asymmetric RS256 with a fixed or auto-rotating key set persisted in the store. Public keys are published at /auth/jwks.json so resource servers validate without a shared secret.' },
   { title: 'Admin dashboard', body: 'A drop-in Blazor admin UI to maintain users — list/search, create, enable/disable, set password, edit roles, manage linked methods, and delete or anonymize. One MapKlassdAuthDashboard() call.' },
   { title: 'Automation webhooks', body: 'Inbound HMAC-signed webhooks let a customer-service tool disable, delete or anonymize a user — so a support ticket can be automated end-to-end, with replay protection and an audit log.' },
+  { title: 'Custom claims & sessions', body: 'Add claims to every access token with an enricher (fresh on each refresh), or merge into a live session — the SuperTokens MergeIntoAccessTokenPayload equivalent, resolvable straight from the request. Arrays become real JSON claims.' },
+  { title: 'Override anything', body: 'Every core service is an interface with a delegating decorator — wrap it, change one method, call base for the rest. The same model as SuperTokens recipe-function overrides, with session-create and third-party post-sign-in hooks that hand you the session.' },
+  { title: 'Migrate from Auth0 / SuperTokens', body: 'Import an existing user base — bcrypt/argon2 passwords verify at login (no forced reset), plus social links, roles, metadata and TOTP. From a JSON export, or by reading a SuperTokens core DB directly. Idempotent and dry-runnable.' },
 ]
 
 const quickstartCode = `builder.Services

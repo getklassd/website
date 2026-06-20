@@ -180,6 +180,49 @@ const adminCode = `app.MapKlassdAuthAdmin(authorizationPolicy: "Admin");
 //   GET/PUT        /auth/admin/users/{id}/roles
 // Responses never include password hashes.`
 
+const overrideCode = `// Wrap any core service — the same model as SuperTokens recipe-function overrides.
+auth.Override<IEmailPasswordService>((inner, sp) => new NoDisposableEmail(inner));
+
+public sealed class NoDisposableEmail(IEmailPasswordService inner) : EmailPasswordServiceDecorator(inner)
+{
+    public override Task<AuthResult> SignUpAsync(string email, string password, CancellationToken ct = default) =>
+        email.EndsWith("@tempmail.com", StringComparison.OrdinalIgnoreCase)
+            ? Task.FromResult(new AuthResult(false, Error: "DISPOSABLE_EMAIL_BLOCKED"))
+            : base.SignUpAsync(email, password, ct);   // call the original
+}`
+
+const claimsCode = `// Add custom claims to every access token (issued at sign-in AND on each refresh):
+auth.AddAccessTokenClaims(async (ctx, sp, ct) =>
+    (await sp.GetRequiredService<IRolesService>().GetRolesAsync(ctx.UserId, ct))
+        .Select(r => new Claim(ClaimTypes.Role, r)));
+
+// Or merge claims into a live session — the SuperTokens MergeIntoAccessTokenPayload equivalent.
+// Resolve the session from the request (like GetSessionFromRequestContext), then merge:
+var session = await http.GetKlassdSessionAsync();
+await session!.MergeIntoAccessTokenPayloadAsync(new { picture, roles });   // persists, rides every refresh`
+
+const thirdPartyHookCode = `// JWT third-party sign-in. After the code exchange + session creation, the hook gets the
+// provider tokens + the live session — mirrors a SuperTokens post-sign-in-up override.
+app.MapKlassdThirdParty();             // GET .../authurl  +  POST .../signin
+auth.AddProvider<AzureAdProvider>();   // your IThirdPartyProvider (exchange returns profile + tokens)
+
+auth.AddThirdPartySignInHook(async (ctx, sp, ct) =>
+{
+    var picture = await FetchGraphPhotoAsync(ctx.Tokens.AccessToken!, ct);   // call the provider
+    await ctx.Session.MergeIntoAccessTokenPayloadAsync(new { picture, roles = ctx.Profile.Claims["roles"] });
+});`
+
+const migrateCode = `// Import users INTO Klassd.Auth. bcrypt/argon2 passwords verify at login (then upgrade to
+// pbkdf2 on next use); social links, roles, metadata and TOTP carry over. Idempotent.
+builder.Services.AddKlassdAuth(cfg).UsePostgres(cs).AddAuthMigration();
+
+var report = await runner.RunAsync(
+    new Auth0MigrationSource("auth0-export.json"),
+    new MigrationOptions { DryRun = true });          // verify first; set false to apply
+
+// SuperTokens: a JSON export, or read the running core DB directly:
+var src = new SuperTokensPostgresMigrationSource("Host=…;Database=supertokens;…");  // or …MySql`
+
 const sections = [
   { id: 'overview', label: 'Overview' },
   { id: 'quickstart', label: 'Quickstart' },
@@ -196,6 +239,9 @@ const sections = [
   { id: 'webhooks', label: 'Webhooks' },
   { id: 'metadata', label: 'User metadata & roles' },
   { id: 'signing', label: 'Token signing' },
+  { id: 'claims', label: 'Custom claims & sessions' },
+  { id: 'extend', label: 'Overrides & hooks' },
+  { id: 'migrate', label: 'Migrating in (Auth0 / SuperTokens)' },
   { id: 'storage', label: 'Storage adapters' },
   { id: 'packages', label: 'Packages' },
 ]
@@ -216,6 +262,9 @@ const features: Feature[] = [
   { title: 'JWKS & RS256 signing', body: 'HS256 by default, or asymmetric RS256 with a fixed or auto-rotating key set persisted in the store. Public keys are published at /auth/jwks.json for shared-secret-free validation.' },
   { title: 'Admin dashboard', body: 'A drop-in Blazor (Interactive Server) UI to maintain users — list/search, create, enable/disable, set password, edit roles, manage linked methods, and delete or anonymize (GDPR erasure).' },
   { title: 'Automation webhooks', body: 'Inbound HMAC-signed webhooks let a customer-service tool disable, delete or anonymize a user — so a support ticket can be automated end-to-end, with replay protection and an audit log.' },
+  { title: 'Custom claims & sessions', body: 'Add claims to every access token with an enricher (fresh on each refresh), or merge into a live session — the SuperTokens MergeIntoAccessTokenPayload equivalent, resolvable from the request. Arrays land as real JSON claims.' },
+  { title: 'Override anything (hooks)', body: 'Every core service is an interface with a delegating decorator — wrap it, change one method, call base for the rest. The same model as SuperTokens recipe-function overrides, plus session-create and third-party post-sign-in hooks that hand you the session.' },
+  { title: 'Migrate in from Auth0 / SuperTokens', body: 'Import an existing user base — bcrypt/argon2 passwords verify at login (no forced reset), with social links, roles, metadata and TOTP. From a JSON export or by reading a SuperTokens core DB (Postgres/MySQL) directly. Idempotent, dry-runnable.' },
 ]
 
 interface Pkg { id: string; purpose: string }
@@ -234,6 +283,9 @@ const packages: Pkg[] = [
   { id: 'Klassd.Auth.Data.Sqlite', purpose: 'SQLite storage adapter (raw Microsoft.Data.Sqlite, JSON-in-TEXT) — zero infrastructure for single-node deployments. UseSqlite().' },
   { id: 'Klassd.Auth.Data.Postgres', purpose: 'PostgreSQL storage adapter (raw Npgsql, jsonb). UsePostgres().' },
   { id: 'Klassd.Auth.Data.MongoDb', purpose: 'MongoDB storage adapter (MongoDB.Driver). UseMongoDb().' },
+  { id: 'Klassd.Auth.Migration', purpose: 'Import users into Klassd.Auth from Auth0 & SuperTokens JSON exports — passwords, social links, roles, metadata, TOTP. AddAuthMigration() + MigrationRunner; idempotent, dry-runnable, multi-replica-safe startup guard.' },
+  { id: 'Klassd.Auth.Migration.SuperTokens.Postgres', purpose: 'Read a SuperTokens core database directly over PostgreSQL (Npgsql) by connection string — no export needed.' },
+  { id: 'Klassd.Auth.Migration.SuperTokens.MySql', purpose: 'Read a SuperTokens core database directly over MySQL (MySqlConnector) by connection string.' },
 ]
 </script>
 
@@ -499,6 +551,65 @@ const packages: Pkg[] = [
           <li><strong>Fixed RS256</strong> — <code>UseRsaSigning(rsa)</code> / <code>UseRsaSigning(pemString)</code> with a key you supply.</li>
           <li><strong>Rotating RS256</strong> — <code>UseRotatingRsaSigning(...)</code> persists keys in the storage adapter and auto-rotates: the newest key signs, recently-retired keys keep validating during a grace window, and expired keys are pruned.</li>
           <li><strong>JWKS</strong> — public key(s) are published at <code>/auth/jwks.json</code> so resource servers validate tokens without a shared secret (empty under HS256).</li>
+        </ul>
+      </section>
+
+      <!-- Custom claims & sessions -->
+      <section id="claims" class="docs-section">
+        <h2>Custom claims &amp; sessions</h2>
+        <p>
+          Shape what's in the access token. An <strong>enricher</strong> runs on every issue — at
+          sign-in <em>and</em> on each refresh — so derived claims (roles, tenant) stay current. To add
+          a claim known at a point in time (say, captured from a provider), <strong>merge it into the
+          session</strong>: it's persisted and rides every future token — the equivalent of
+          SuperTokens' <code>sessionContainer.MergeIntoAccessTokenPayload</code>, and you can resolve the
+          session straight from the request like <code>GetSessionFromRequestContext</code>.
+        </p>
+        <pre class="docs-code"><code>{{ claimsCode }}</code></pre>
+        <ul class="docs-list">
+          <li><strong>Typed values</strong> — strings become string claims; arrays/objects become real JSON claims (a <code>roles</code> string[] lands as a JWT array, mapped to <code>ClaimTypes.Role</code>).</li>
+          <li><strong>Stamp on create</strong> — <code>AddSessionCreateHook(...)</code> is handed the live session as each one is created (the <code>CreateNewSession</code> override analogue).</li>
+          <li><strong>Session data</strong> — entries set at sign-in are namespaced with an <code>sd_</code> prefix by default (configurable, or off).</li>
+        </ul>
+      </section>
+
+      <!-- Overrides & hooks -->
+      <section id="extend" class="docs-section">
+        <h2>Overrides &amp; hooks</h2>
+        <p>
+          Every core service is an interface with a delegating decorator base. <strong>Wrap any of
+          them</strong> to inject your own logic and call <code>base</code> for the original — the same
+          model as SuperTokens recipe-function overrides. The whole suite (HTTP endpoints, cookie
+          sign-in, webhooks) resolves services by interface, so an override applies everywhere.
+        </p>
+        <pre class="docs-code"><code>{{ overrideCode }}</code></pre>
+        <p>
+          For third-party sign-in, a <strong>post-sign-in hook</strong> hands you the provider's tokens
+          and the live session — so you can call the provider's APIs (e.g. fetch a profile picture) and
+          merge claims onto the token, just like a SuperTokens post-sign-in-up override:
+        </p>
+        <pre class="docs-code"><code>{{ thirdPartyHookCode }}</code></pre>
+        <ul class="docs-list">
+          <li><strong>Overridable</strong> — email/password, sessions, third-party, password reset, email verification, user accounts, lifecycle, roles, metadata and TOTP.</li>
+          <li><strong>Stackable</strong> — register more than one; the last wraps the previous.</li>
+          <li><strong>Per-provider mapping</strong> — <code>MapExternalProfile(scheme, …)</code> overrides how one provider's claims map to a user (the <code>GetUserInfo</code> analogue).</li>
+        </ul>
+      </section>
+
+      <!-- Migration -->
+      <section id="migrate" class="docs-section">
+        <h2>Migrating in <span class="docs-opt">(from Auth0 / SuperTokens)</span></h2>
+        <p>
+          Move an existing user base onto Klassd.Auth without forcing a password reset:
+          <strong>bcrypt and argon2 hashes verify at login</strong> (then silently upgrade to the native
+          pbkdf2 on next use). Social links, passwordless identities, roles, metadata and TOTP secrets
+          carry over too. Runs are <strong>idempotent</strong> and dry-runnable.
+        </p>
+        <pre class="docs-code"><code>{{ migrateCode }}</code></pre>
+        <ul class="docs-list">
+          <li><strong>Sources</strong> — Auth0 bulk-export / import JSON, SuperTokens bulk-import JSON, or a SuperTokens core database read directly (PostgreSQL or MySQL).</li>
+          <li><strong>Safe to run in K8s</strong> — ship it as a one-shot Job/initContainer, or embed it in startup guarded by a durable ledger + distributed lease so it runs exactly once across replicas.</li>
+          <li><strong>Honest reporting</strong> — the report counts created / merged / skipped / failed, and flags any password that couldn't be migrated (so those users reset).</li>
         </ul>
       </section>
 
