@@ -161,13 +161,16 @@ var prefs = await meta.GetAsync<CmsPrefs>(userId, "cms:prefs");
 await roles.SetRolesAsync(userId, ["Administrator"]);
 var isAdmin = await roles.IsInRoleAsync(userId, "Administrator");`
 
-const signingCode = `// HS256 by default (shared SigningKey). For asymmetric signing:
-auth.UseRsaSigning(rsa);                  // or .UseRsaSigning(pemString) — fixed RS256 key
-auth.UseRotatingRsaSigning(o =>           // RS256, keys persisted + auto-rotated in the store
+const signingCode = `// Default: rotating RS256 when a storage adapter is present (keys persisted +
+// auto-rotated, JWKS + discovery published). No call needed — the first key is
+// generated automatically. Tune it, or choose another scheme:
+auth.UseRotatingRsaSigning(o =>
 {
     o.SigningKeyLifetime = TimeSpan.FromDays(30);
     o.ValidationGrace    = TimeSpan.FromDays(7);
 });
+// auth.UseRsaSigning(rsa);            // fixed RS256 key you supply
+// auth.UseSharedSecretSigning();      // opt back into HS256 (shared secret, no JWKS)
 
 // Either way, public keys are published at /auth/jwks.json and an OpenID Connect
 // discovery doc at /auth/.well-known/openid-configuration — so a resource server
@@ -265,7 +268,7 @@ const features: Feature[] = [
   { title: 'Per-user typed metadata', body: 'Store app-specific data as one JSON document accessed through typed sections, so two apps never collide. Roles ride the same mechanism via RolesService.' },
   { title: 'Pluggable storage', body: 'The core depends only on IUserStore / ISessionStore / IUserMetadataStore. Bind SQLite, PostgreSQL or MongoDB with a Data.* adapter — raw drivers, no EF/ORM.' },
   { title: 'Drop-in cookie sign-in', body: 'For Blazor / server-rendered apps, add cookie delivery and the external-SSO seam with one call. Optional loopback bypass means no login on localhost / port-forward.' },
-  { title: 'JWKS & RS256 signing', body: 'HS256 by default, or asymmetric RS256 with a fixed or auto-rotating key set persisted in the store. Public keys are published at /auth/jwks.json for shared-secret-free validation.' },
+  { title: 'RS256 + JWKS by default', body: 'With a database adapter, signing defaults to rotating RS256 — keys persisted and auto-rotated — publishing JWKS and an OpenID discovery doc so resource servers validate via discovery. HS256 shared-secret is an opt-out.' },
   { title: 'Admin dashboard', body: 'A drop-in Blazor (Interactive Server) UI to maintain users — list/search, create, enable/disable, set password, edit roles, manage linked methods, and delete or anonymize (GDPR erasure).' },
   { title: 'Automation webhooks', body: 'Inbound HMAC-signed webhooks let a customer-service tool disable, delete or anonymize a user — so a support ticket can be automated end-to-end, with replay protection and an audit log.' },
   { title: 'Custom claims & sessions', body: 'Add claims to every access token with an enricher (fresh on each refresh), or merge into a live session — the SuperTokens MergeIntoAccessTokenPayload equivalent, resolvable from the request. Arrays land as real JSON claims.' },
@@ -550,12 +553,17 @@ const packages: Pkg[] = [
 
       <!-- Signing -->
       <section id="signing" class="docs-section">
-        <h2>Token signing (HS256 / RS256 / rotating + JWKS)</h2>
-        <p>Access tokens are HS256 by default (shared secret). For asymmetric signing:</p>
+        <h2>Token signing (rotating RS256 + JWKS by default)</h2>
+        <p>
+          With a storage adapter in play, Klassd.Auth defaults to <strong>rotating RS256</strong> —
+          keys are generated, persisted and auto-rotated, and the public keys are published — so
+          discovery/JWKS validation works with no extra setup. With no store it falls back to HS256.
+        </p>
         <pre class="docs-code"><code>{{ signingCode }}</code></pre>
         <ul class="docs-list">
+          <li><strong>Default rotating RS256</strong> — <code>UseRotatingRsaSigning(...)</code> persists keys in the storage adapter and auto-rotates: the newest key signs, recently-retired keys keep validating during a grace window, and expired keys are pruned. It's on by default when a store is present; call it only to tune the lifetimes.</li>
           <li><strong>Fixed RS256</strong> — <code>UseRsaSigning(rsa)</code> / <code>UseRsaSigning(pemString)</code> with a key you supply.</li>
-          <li><strong>Rotating RS256</strong> — <code>UseRotatingRsaSigning(...)</code> persists keys in the storage adapter and auto-rotates: the newest key signs, recently-retired keys keep validating during a grace window, and expired keys are pruned.</li>
+          <li><strong>Shared secret</strong> — <code>UseSharedSecretSigning()</code> opts back into HS256 (no JWKS).</li>
           <li><strong>JWKS</strong> — public key(s) are published at <code>/auth/jwks.json</code> so resource servers validate tokens without a shared secret (empty under HS256).</li>
           <li><strong>OIDC discovery</strong> — a discovery document at <code>/auth/.well-known/openid-configuration</code> advertises the issuer and an absolute <code>jwks_uri</code>, so JWT-bearer middleware auto-discovers the keys from an <code>Authority</code> instead of hard-coding the JWKS URL.</li>
         </ul>
