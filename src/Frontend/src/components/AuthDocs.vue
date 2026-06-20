@@ -169,8 +169,14 @@ auth.UseRotatingRsaSigning(o =>           // RS256, keys persisted + auto-rotate
     o.ValidationGrace    = TimeSpan.FromDays(7);
 });
 
-// Either way, public keys are published at /auth/jwks.json so resource
-// servers validate tokens without a shared secret.`
+// Either way, public keys are published at /auth/jwks.json and an OpenID Connect
+// discovery doc at /auth/.well-known/openid-configuration — so a resource server
+// auto-discovers the issuer + keys instead of hard-coding them:
+builder.Services.AddAuthentication().AddJwtBearer(o =>
+{
+    o.Authority = "https://your-host/auth";   // reads /auth/.well-known/openid-configuration
+    o.TokenValidationParameters.ValidAudience = "klassd.auth";
+});`
 
 const adminCode = `app.MapKlassdAuthAdmin(authorizationPolicy: "Admin");
 //   GET/POST       /auth/admin/users
@@ -551,6 +557,7 @@ const packages: Pkg[] = [
           <li><strong>Fixed RS256</strong> — <code>UseRsaSigning(rsa)</code> / <code>UseRsaSigning(pemString)</code> with a key you supply.</li>
           <li><strong>Rotating RS256</strong> — <code>UseRotatingRsaSigning(...)</code> persists keys in the storage adapter and auto-rotates: the newest key signs, recently-retired keys keep validating during a grace window, and expired keys are pruned.</li>
           <li><strong>JWKS</strong> — public key(s) are published at <code>/auth/jwks.json</code> so resource servers validate tokens without a shared secret (empty under HS256).</li>
+          <li><strong>OIDC discovery</strong> — a discovery document at <code>/auth/.well-known/openid-configuration</code> advertises the issuer and an absolute <code>jwks_uri</code>, so JWT-bearer middleware auto-discovers the keys from an <code>Authority</code> instead of hard-coding the JWKS URL.</li>
         </ul>
       </section>
 
