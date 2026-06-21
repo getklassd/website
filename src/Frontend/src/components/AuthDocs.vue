@@ -232,6 +232,13 @@ var report = await runner.RunAsync(
 // SuperTokens: a JSON export, or read the running core DB directly:
 var src = new SuperTokensPostgresMigrationSource("Host=…;Database=supertokens;…");  // or …MySql`
 
+const tenantCode = `app.UseAuthentication();
+app.UseKlassdTenant();   // copies the access token's \`tnt\` claim into ITenantContext for the request
+app.UseAuthorization();
+
+// Identity lookups + the admin user list are scoped to ITenantContext.TenantId (default "public").
+// Sign-up/sign-in bodies accept an optional "tenant"; the issued token carries it as the tnt claim.`
+
 const sections = [
   { id: 'overview', label: 'Overview' },
   { id: 'quickstart', label: 'Quickstart' },
@@ -251,6 +258,7 @@ const sections = [
   { id: 'claims', label: 'Custom claims & sessions' },
   { id: 'extend', label: 'Overrides & hooks' },
   { id: 'migrate', label: 'Migrating in (Auth0 / SuperTokens)' },
+  { id: 'multitenancy', label: 'Multi-tenancy' },
   { id: 'storage', label: 'Storage adapters' },
   { id: 'packages', label: 'Packages' },
 ]
@@ -267,13 +275,14 @@ const features: Feature[] = [
   { title: 'Email verification', body: 'Send a verification link and consume single-use tokens. Tokens are hashed, TTL-bound and persisted by the storage adapter, so they survive restarts and scale across nodes.' },
   { title: 'Per-user typed metadata', body: 'Store app-specific data as one JSON document accessed through typed sections, so two apps never collide. Roles ride the same mechanism via RolesService.' },
   { title: 'Pluggable storage', body: 'The core depends only on IUserStore / ISessionStore / IUserMetadataStore. Bind SQLite, PostgreSQL or MongoDB with a Data.* adapter — raw drivers, no EF/ORM.' },
+  { title: 'Multi-tenancy', body: 'Serve many tenants from one database: every identity lookup is scoped to the tenant and the access token carries it as a tnt claim, so the same email can exist independently per tenant. Defaults to a single "public" tenant — single-tenant apps change nothing.' },
   { title: 'Drop-in cookie sign-in', body: 'For Blazor / server-rendered apps, add cookie delivery and the external-SSO seam with one call. Optional loopback bypass means no login on localhost / port-forward.' },
   { title: 'RS256 + JWKS by default', body: 'With a database adapter, signing defaults to rotating RS256 — keys persisted and auto-rotated — publishing JWKS and an OpenID discovery doc so resource servers validate via discovery. HS256 shared-secret is an opt-out.' },
-  { title: 'Admin dashboard', body: 'A drop-in Blazor (Interactive Server) UI to maintain users — list/search, create, enable/disable, set password, edit roles, manage linked methods, and delete or anonymize (GDPR erasure).' },
+  { title: 'Admin dashboard', body: 'A drop-in Blazor (Interactive Server) UI to maintain users — list/search, create, enable/disable, set password, edit roles, manage linked methods, and delete or anonymize (GDPR erasure). It can also run an import (file or live DB) as a background job with live progress.' },
   { title: 'Automation webhooks', body: 'Inbound HMAC-signed webhooks let a customer-service tool disable, delete or anonymize a user — so a support ticket can be automated end-to-end, with replay protection and an audit log.' },
   { title: 'Custom claims & sessions', body: 'Add claims to every access token with an enricher (fresh on each refresh), or merge into a live session — the SuperTokens MergeIntoAccessTokenPayload equivalent, resolvable from the request. Arrays land as real JSON claims.' },
   { title: 'Override anything (hooks)', body: 'Every core service is an interface with a delegating decorator — wrap it, change one method, call base for the rest. The same model as SuperTokens recipe-function overrides, plus session-create and third-party post-sign-in hooks that hand you the session.' },
-  { title: 'Migrate in from Auth0 / SuperTokens', body: 'Import an existing user base — bcrypt/argon2 passwords verify at login (no forced reset), with social links, roles, metadata and TOTP. From a JSON export or by reading a SuperTokens core DB (Postgres/MySQL) directly. Idempotent, dry-runnable.' },
+  { title: 'Migrate in from Auth0 / SuperTokens', body: 'Import an existing user base — bcrypt/argon2 passwords verify at login (no forced reset), with social links, roles, metadata and TOTP. From a JSON export or by reading a SuperTokens core DB (Postgres/MySQL) directly. Idempotent, dry-runnable, and can fold several databases into one multi-tenant instance.' },
 ]
 
 interface Pkg { id: string; purpose: string }
@@ -285,14 +294,14 @@ const packages: Pkg[] = [
   { id: 'Klassd.Auth.Passwordless', purpose: 'Passwordless one-time codes over email and SMS. AddPasswordless() + MapKlassdPasswordless() (JSON and cookie variants).' },
   { id: 'Klassd.Auth.Passkeys', purpose: 'Passkeys (WebAuthn / FIDO2) via Fido2NetLib, with a stateless DataProtection ceremony-challenge store. AddPasskeys() + MapKlassdPasskeys().' },
   { id: 'Klassd.Auth.Sms.Twilio', purpose: 'Twilio ISmsSender for passwordless-over-SMS delivery. AddTwilioSms(accountSid, authToken, fromNumber).' },
-  { id: 'Klassd.Auth.Dashboard', purpose: 'Drop-in Blazor (Interactive Server) user-admin dashboard — list/create/disable/delete/anonymize, roles, linked methods. AddKlassdAuthDashboard() + MapKlassdAuthDashboard().' },
+  { id: 'Klassd.Auth.Dashboard', purpose: 'Drop-in Blazor (Interactive Server) user-admin dashboard — list/create/disable/delete/anonymize, roles, linked methods, plus a background import page (file or live DB) with live progress. AddKlassdAuthDashboard() + MapKlassdAuthDashboard().' },
   { id: 'Klassd.Auth.Webhooks', purpose: 'Inbound HMAC-signed webhooks so external tooling can disable/enable/delete/anonymize a user. AddKlassdAuthWebhooks() + MapKlassdAuthWebhooks().' },
   { id: 'Klassd.Auth.OpenIdConnect', purpose: 'OIDC external login, including Microsoft Entra ID (AddEntraId) and Google (AddGoogle), plus AddOpenIdConnect() for any other OIDC provider.' },
   { id: 'Klassd.Auth.OAuth', purpose: 'OAuth 2.0 (non-OIDC) providers — GitHub, Facebook, Instagram, TikTok. Instagram/TikTok return no email.' },
   { id: 'Klassd.Auth.Data.Sqlite', purpose: 'SQLite storage adapter (raw Microsoft.Data.Sqlite, JSON-in-TEXT) — zero infrastructure for single-node deployments. UseSqlite().' },
   { id: 'Klassd.Auth.Data.Postgres', purpose: 'PostgreSQL storage adapter (raw Npgsql, jsonb). UsePostgres().' },
   { id: 'Klassd.Auth.Data.MongoDb', purpose: 'MongoDB storage adapter (MongoDB.Driver). UseMongoDb().' },
-  { id: 'Klassd.Auth.Migration', purpose: 'Import users into Klassd.Auth from Auth0 & SuperTokens JSON exports — passwords, social links, roles, metadata, TOTP. AddAuthMigration() + MigrationRunner; idempotent, dry-runnable, multi-replica-safe startup guard.' },
+  { id: 'Klassd.Auth.Migration', purpose: 'Import users into Klassd.Auth from Auth0 & SuperTokens JSON exports — passwords, social links, roles, metadata, TOTP. AddAuthMigration() + MigrationRunner; idempotent, dry-runnable, multi-replica-safe startup guard, and RunManyAsync to fold many databases into one multi-tenant instance.' },
   { id: 'Klassd.Auth.Migration.SuperTokens.Postgres', purpose: 'Read a SuperTokens core database directly over PostgreSQL (Npgsql) by connection string — no export needed.' },
   { id: 'Klassd.Auth.Migration.SuperTokens.MySql', purpose: 'Read a SuperTokens core database directly over MySQL (MySqlConnector) by connection string.' },
 ]
@@ -512,6 +521,7 @@ const packages: Pkg[] = [
           <li><strong>Configurable path</strong> — defaults to <code>/auth/dashboard</code>; pass any base path to <code>MapKlassdAuthDashboard</code> to mount it elsewhere.</li>
           <li><strong>Destructive ops</strong> — disable (revokes sessions), hard <strong>delete</strong> (cascades sessions/passkeys/metadata), and <strong>anonymize</strong> (GDPR erasure: strips PII but keeps the id row).</li>
           <li><strong>Self-contained</strong> — a pipeline branch owning its routing/auth/antiforgery/static assets; ships its own stylesheet.</li>
+          <li><strong>Import page</strong> — when <code>AddAuthMigration()</code> is registered, an <code>/import</code> page imports an Auth0/SuperTokens export (or a live database the host registers via <code>AddConnectionSource</code>) into a chosen tenant. It runs as a <strong>background job with live progress</strong> — survives navigating away, and is cancellable.</li>
         </ul>
       </section>
 
@@ -624,7 +634,27 @@ const packages: Pkg[] = [
         <ul class="docs-list">
           <li><strong>Sources</strong> — Auth0 bulk-export / import JSON, SuperTokens bulk-import JSON, or a SuperTokens core database read directly (PostgreSQL or MySQL).</li>
           <li><strong>Safe to run in K8s</strong> — ship it as a one-shot Job/initContainer, or embed it in startup guarded by a durable ledger + distributed lease so it runs exactly once across replicas.</li>
+          <li><strong>Many databases → one multi-tenant instance</strong> — set <code>MigrationOptions.TenantId</code>, or use <code>RunManyAsync</code> / the CLI <code>--tenant</code> &amp; <code>--manifest</code> to import each source into its own tenant.</li>
           <li><strong>Honest reporting</strong> — the report counts created / merged / skipped / failed, and flags any password that couldn't be migrated (so those users reset).</li>
+        </ul>
+      </section>
+
+      <!-- Multi-tenancy -->
+      <section id="multitenancy" class="docs-section">
+        <h2>Multi-tenancy <span class="docs-opt">(shared-schema)</span></h2>
+        <p>
+          One instance can serve many tenants from one database. Each user and session carries a
+          <code>TenantId</code> (default <code>"public"</code>, so <strong>single-tenant deployments
+          change nothing</strong>); the storage adapters scope every identity lookup — by email,
+          username, phone and third-party provider — and the admin user list to the current tenant, and
+          the access token carries it as a <code>tnt</code> claim. The same email can therefore register
+          independently per tenant; lookup by id stays global.
+        </p>
+        <pre class="docs-code"><code>{{ tenantCode }}</code></pre>
+        <ul class="docs-list">
+          <li><strong>Enforced in the store</strong> — so every login method (password, passwordless, passkey, OAuth) is tenant-scoped by construction; a login can never resolve another tenant's user.</li>
+          <li><strong>Carried in the token</strong> — no per-request subdomain/host parsing; <code>ITenantContext</code> is set at login and rehydrated from the <code>tnt</code> claim by <code>UseKlassdTenant()</code>.</li>
+          <li><strong>Migrate many into one</strong> — fold several source databases into one multi-tenant instance, each into its own tenant (see Migrating in).</li>
         </ul>
       </section>
 
