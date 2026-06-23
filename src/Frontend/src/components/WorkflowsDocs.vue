@@ -35,7 +35,13 @@ app.MapKlassdWorkflowsDashboard();                // static assets + component e
 app.Run();`
 
 const scheduleCode = `scheduler.AddOrUpdateRecurring<MyJob>("nightly", "0 2 * * *");   // cron
-await scheduler.EnqueueAsync<MyJob>();                            // fire now`
+await scheduler.EnqueueAsync<MyJob>();                            // fire now
+
+// Standalone jobs can carry init containers too (e.g. a migration before the worker runs):
+await scheduler.EnqueueAsync<MyJob>(initContainers: new[]
+{
+    new InitContainerSpec { Name = "migrate", Image = "myorg/migrate:1" }
+});`
 
 const tenantCode = `// Pass a tenant on any enqueue / recurring / workflow overload:
 await scheduler.EnqueueAsync<ReportJob>(tenant: "acme");
