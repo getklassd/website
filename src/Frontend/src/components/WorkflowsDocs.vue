@@ -37,6 +37,28 @@ app.Run();`
 const scheduleCode = `scheduler.AddOrUpdateRecurring<MyJob>("nightly", "0 2 * * *");   // cron
 await scheduler.EnqueueAsync<MyJob>();                            // fire now`
 
+const tenantCode = `// Pass a tenant on any enqueue / recurring / workflow overload:
+await scheduler.EnqueueAsync<ReportJob>(tenant: "acme");
+await scheduler.EnqueueWorkflowAsync("nightly-sync", tenant: "globex");
+scheduler.AddOrUpdateRecurring<ReportJob>("acme-nightly", "0 2 * * *", tenant: "acme");
+
+// The worker layers tenant config over the shared base, so one image serves every tenant:
+//   appsettings.json → appsettings.{ENV}.json → appsettings.{tenant}.json
+//     → /secrets/*.json → /secrets/{tenant}/*.json → environment variables
+public sealed class ReportJob : IJob
+{
+    // The tenant is on the (already tenant-scoped) configuration — branch your DI on it:
+    public static void Configure(IServiceCollection services, IConfiguration cfg)
+    {
+        var tenant = cfg[WorkerProtocol.ConfigTenantKey];        // null when not multi-tenant
+        services.AddSingleton<IReportSink>(tenant == "acme"
+            ? new S3Sink(cfg["acme:bucket"]!) : new LocalSink());
+    }
+
+    public async Task RunAsync(IJobContext ctx) =>
+        ctx.Log($"running for {ctx.Tenant ?? "(no tenant)"}");   // also on the context at runtime
+}`
+
 const dagCode = `registry.Register(new WorkflowBuilder("catalog-integration")
     .Add<MarketFinderJob>("markets")                       // root: emits "market_ids"
     .Add<DataProxyJob>("data-proxy")                       // parallel root: writes an artifact
@@ -87,6 +109,7 @@ const sections = [
   { id: 'overview', label: 'Overview' },
   { id: 'quickstart', label: 'Quickstart' },
   { id: 'scheduling', label: 'Scheduling' },
+  { id: 'multitenant', label: 'Multi-tenant' },
   { id: 'workflows', label: 'Workflows (DAGs)' },
   { id: 'containers', label: 'Container jobs & services' },
   { id: 'executors', label: 'Executors' },
@@ -148,6 +171,7 @@ const features: Feature[] = [
   { title: 'Full control of the pod', body: 'Init containers, volumes, security contexts, resources, envFrom, and scheduling (nodeSelector / tolerations / affinity) — set per job, per node, or executor-wide. Pod annotations drive sidecar injectors like the Vault agent.' },
   { title: 'Live dashboard', body: 'A Blazor Server UI — jobs catalog, run history, per-job console with inline progress bars, and an SVG view of each DAG run. Ships as a Razor Class Library you mount into your own host.' },
   { title: 'Dashboard SSO & users', body: 'Email/password users plus OpenID Connect single sign-on, mirroring the Klassd CMS. Loopback (local dev / kubectl port-forward) is bypassed, so no login there.' },
+  { title: 'Multi-tenant', body: 'One job image serves many tenants: pass a tenant at enqueue and the worker layers appsettings.{tenant}.json and /secrets/{tenant}/ over the shared base, so a job reads its IConfiguration and gets tenant-scoped values with no per-tenant code.' },
   { title: 'Durable & pluggable', body: 'Swap the job store (in-memory / PostgreSQL / MongoDB / SQLite) and the artifact store (filesystem / S3 / GCS) — or ship your own adapter.' },
 ]
 
@@ -247,6 +271,28 @@ const packages: Pkg[] = [
           <code>AddOrUpdateRecurringWorkflow(id, name, cron)</code>. Pod resources (CPU/memory
           requests &amp; limits) are set per job with a <code>[JobResources]</code> attribute and can
           be retuned from config without a recompile.
+        </p>
+      </section>
+
+      <!-- Multi-tenant -->
+      <section id="multitenant" class="docs-section">
+        <h2>Multi-tenant</h2>
+        <p>
+          One job image can serve many tenants, each loading its own configuration — no per-tenant
+          code. Pass a <code>tenant</code> at enqueue (every enqueue, recurring and workflow overload
+          takes an optional <code>tenant</code>); it rides through to the worker as
+          <code>KLASSD_TENANT</code>, which <strong>layers tenant-specific configuration over the
+          shared base</strong> before building the job. A job reads the tenant from its
+          (already tenant-scoped) <code>IConfiguration</code> in <code>Configure</code>, or from
+          <code>IJobContext.Tenant</code> at runtime.
+        </p>
+        <pre class="docs-code"><code>{{ tenantCode }}</code></pre>
+        <p class="docs-note">
+          Configuration precedence (last wins):
+          <code>appsettings.json</code> → <code>appsettings.{ENV}.json</code> →
+          <code>appsettings.{tenant}.json</code> → <code>/secrets/*.json</code> →
+          <code>/secrets/{tenant}/*.json</code> → environment variables. Workflow nodes inherit the
+          run's tenant; recurring definitions keep theirs across fires.
         </p>
       </section>
 
